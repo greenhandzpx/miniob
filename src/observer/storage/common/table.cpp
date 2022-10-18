@@ -687,10 +687,110 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   return rc;
 }
 
+class RecordUpdater {
+public:
+  RecordUpdater(Table &table, Trx *trx, const char *attribute_name, const Value *value): 
+    table_(table), trx_(trx), attribute_name_(attribute_name), value_(value) {}
+
+  RC update_record(Record *record)
+  {
+    RC rc = RC::SUCCESS;
+
+    // find the record's field that needs updating
+    const TableMeta table_meta = table_.table_meta();
+    const FieldMeta *field = table_meta.field(attribute_name_);
+    if (field == nullptr) {
+      // the field doesn't exist
+      LOG_ERROR("Invalid field name=%s", attribute_name_);
+      return RC::SCHEMA_FIELD_NOT_EXIST;
+    }
+
+    if (field->type() != value_->type) {
+      LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
+          table_meta.name(),
+          field->name(),
+          field->type(),
+          value_->type);
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+
+    // delete old index 
+    rc = table_.delete_entry_of_indexes(record->data(), record->rid(), false); 
+
+    size_t copy_len = field->len();
+    if (field->type() == CHARS) {
+      const size_t data_len = strlen((const char *)value_->data);
+      if (copy_len > data_len) {
+        copy_len = data_len + 1;
+      }
+    }
+    // modify the field in the record data
+    memcpy(record->data() + field->offset(), value_->data, copy_len);
+
+    rc = table_.update_record(trx_, record);
+    if (rc == RC::SUCCESS) {
+      updated_count_++;
+    }
+    return rc;
+  }
+
+  int update_count() {
+    return updated_count_;
+  }
+
+private: 
+  Table &table_;
+  Trx *trx_;
+  int updated_count_ = 0;
+  const char *attribute_name_;
+  const Value *value_;
+};
+
+static RC record_reader_update_adapter(Record *record, void *context) 
+{
+  RecordUpdater &record_updater = *(RecordUpdater *)context;
+  return record_updater.update_record(record);
+}
+
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
     const Condition conditions[], int *updated_count)
 {
-  return RC::GENERIC_ERROR;
+  // return RC::GENERIC_ERROR;
+  RecordUpdater updater(*this, trx, attribute_name, value);
+  // TODO memory leak here
+  CompositeConditionFilter *filter =new CompositeConditionFilter;
+  filter->init(*this, conditions, condition_num);
+  RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.update_count();
+    printf("update cnt %d\n", *updated_count);
+  }
+  return rc;
+}
+
+RC Table::update_record(Trx *trx, Record *record) 
+{
+  RC rc = RC::SUCCESS;
+  // if (trx != nullptr) {
+  //   rc = trx->update_record(this, record);
+  // } else {
+
+  // printf("old record data %s\n", record->data());
+
+  // then update new index
+  rc = insert_entry_of_indexes(record->data(), record->rid());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
+                record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
+  } else {
+    // update the record
+    rc = record_handler_->update_record(record);
+  }
+
+  // }
+  return rc;
+
+  return RC::SUCCESS;
 }
 
 class RecordDeleter {
