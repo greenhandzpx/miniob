@@ -20,46 +20,106 @@ See the Mulan PSL v2 for more details. */
 
 RC PredicateOperator::open()
 {
-  if (children_.size() != 1) {
-    LOG_WARN("predicate operator must has one child");
-    return RC::INTERNAL;
+  // if (children_.size() != 1) {
+  //   LOG_WARN("predicate operator must has one child");
+  //   return RC::INTERNAL;
+  // }
+  RC rc = RC::SUCCESS;
+  for (auto child: children_) {
+    if (RC::SUCCESS != (rc = child->open())) {
+      return rc;
+    }
   }
 
-  return children_[0]->open();
+  return RC::SUCCESS;
 }
 
 RC PredicateOperator::next()
 {
   RC rc = RC::SUCCESS;
-  Operator *oper = children_[0];
-  
-  while (RC::SUCCESS == (rc = oper->next())) {
-    Tuple *tuple = oper->current_tuple();
-    if (nullptr == tuple) {
+
+  if (children_.size() == 1) {
+    Operator *oper = children_[0];
+
+    while (RC::SUCCESS == (rc = oper->next())) {
+      Tuple *tuple = oper->current_tuple();
+      if (nullptr == tuple) {
+        rc = RC::INTERNAL;
+        LOG_WARN("failed to get tuple from operator");
+        break;
+      }
+
+      if (do_predicate(static_cast<RowTuple &>(*tuple))) {
+        return rc;
+      }
+    }
+    return rc;
+  }
+
+  while (RC::SUCCESS == (rc = next_when_multi_tables())) {
+    if (current_tuple_ != nullptr) {
+      // free last current tuple
+      delete current_tuple_;
+    }
+    printf("get a new composite tuple\n");
+    current_tuple_ = new CompositeTuple(tuple_stack_);
+    // Tuple *tuple = current_tuple();
+    if (nullptr == current_tuple_) {
       rc = RC::INTERNAL;
       LOG_WARN("failed to get tuple from operator");
       break;
     }
 
-    if (do_predicate(static_cast<RowTuple &>(*tuple))) {
+    if (do_predicate(static_cast<CompositeTuple &>(*current_tuple_))) {
       return rc;
     }
   }
   return rc;
 }
 
-RC PredicateOperator::close()
-{
-  children_[0]->close();
-  return RC::SUCCESS;
+RC PredicateOperator::next_when_multi_tables() {
+  RC rc = RC::SUCCESS;
+
+  if (tuple_stack_.size() != children_.size()) {
+    // this must be the first time to call 
+    if (tuple_stack_.size() != 0) {
+      LOG_WARN("something error happens");
+      return RC::INTERNAL;
+    }
+    for (auto child: children_) {
+      if (child->next() != RC::SUCCESS) {
+        LOG_WARN("shouldn't be empty table in predicate chilren");
+        return RC::INTERNAL;
+      }
+      tuple_stack_.push_back(child->current_tuple());
+    }
+    return rc;
+  }
+
+  int n = children_.size();
+  int i = n - 1;
+  tuple_stack_.pop_back();
+  while (i >= 0 && (rc = children_[i]->next()) != RC::SUCCESS) {
+    printf("nothing in this node, i: %d\n", i);
+    tuple_stack_.pop_back();
+    children_[i]->close();
+    --i;
+  }
+  if (i < 0) {
+    return rc;
+  }
+
+  tuple_stack_.push_back(children_[i]->current_tuple());
+  ++i;
+  for (; i < n; ++i) {
+    children_[i]->open();
+    assert((rc = children_[i]->next()) == RC::SUCCESS);
+    tuple_stack_.push_back(children_[i]->current_tuple());
+  }
+  return rc;
 }
 
-Tuple * PredicateOperator::current_tuple()
-{
-  return children_[0]->current_tuple();
-}
-
-bool PredicateOperator::do_predicate(RowTuple &tuple)
+bool PredicateOperator::do_predicate(Tuple &tuple)
 {
   if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
     return true;
@@ -105,6 +165,27 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
   }
   return true;
 }
+
+Tuple * PredicateOperator::current_tuple()
+{
+  // merge multiple table tuples to one tuple
+  if (children_.size() == 1) {
+    return children_[0]->current_tuple();
+  }
+  // TODO memory leak
+  return current_tuple_;
+  // return new CompositeTuple(tuple_stack_);
+}
+
+RC PredicateOperator::close()
+{
+  for (auto child: children_) {
+    child->close();
+  }
+  children_[0]->close();
+  return RC::SUCCESS;
+}
+
 
 // int PredicateOperator::tuple_cell_num() const
 // {

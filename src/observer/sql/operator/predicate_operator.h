@@ -35,11 +35,15 @@ public:
   RC next() override;
   RC close() override;
 
+  RC next_when_multi_tables();
+
   Tuple * current_tuple() override;
   //int tuple_cell_num() const override;
   //RC tuple_cell_spec_at(int index, TupleCellSpec &spec) const override;
 private:
-  bool do_predicate(RowTuple &tuple);
+  bool do_predicate(Tuple &tuple);
 private:
   FilterStmt *filter_stmt_ = nullptr;
+  std::vector<Tuple *> tuple_stack_;
+  CompositeTuple *current_tuple_ = nullptr;
 };

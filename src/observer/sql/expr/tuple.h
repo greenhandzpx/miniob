@@ -173,6 +173,57 @@ private:
   std::vector<Tuple *> tuples_;
 };
 */
+/**
+  merge multiple tuples to one tuple
+*/
+class CompositeTuple : public Tuple
+{
+public:
+  CompositeTuple(const std::vector<Tuple *>& tuples) 
+    : tuples_(tuples) {
+      for (int i = 0; i < tuples_.size(); ++i) {
+        cell_num_ += tuples_[i]->cell_num();
+      }
+    }
+
+  int cell_num() const override {
+    return cell_num_;
+  }
+
+  RC cell_at(int index, TupleCell &cell) const override {
+    for (Tuple *tuple: tuples_) {
+      if (tuple->cell_at(index, cell) == RC::SUCCESS) {
+        return RC::SUCCESS;
+      }
+      index -= tuple->cell_num();
+    } 
+    return RC::INVALID_ARGUMENT;
+  }
+
+  RC find_cell(const Field &field, TupleCell &cell) const override {
+    for (Tuple *tuple: tuples_) {
+      if (tuple->find_cell(field, cell) == RC::SUCCESS) {
+        return RC::SUCCESS;
+      }
+    }
+    return RC::NOTFOUND;
+  }
+
+  RC cell_spec_at(int index, const TupleCellSpec *&spec) const override {
+    for (Tuple *tuple: tuples_) {
+      if (tuple->cell_spec_at(index, spec) == RC::SUCCESS) {
+        return RC::SUCCESS;
+      }
+      index -= tuple->cell_num();
+    } 
+    return RC::INVALID_ARGUMENT;
+  }
+
+private:
+  int cell_num_ = 0;
+  std::vector<Tuple *> tuples_;
+};
+
 
 class ProjectTuple : public Tuple
 {

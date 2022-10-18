@@ -115,7 +115,15 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 }
 void selects_append_relation(Selects *selects, const char *relation_name)
 {
-  selects->relations[selects->relation_num++] = strdup(relation_name);
+  // selects->relations[selects->relation_num++] = strdup(relation_name);
+  printf("append a relation %s\n", relation_name);
+  // adjust the order
+  // TODO optimize
+  selects->relation_num++;
+  for (int i = selects->relation_num - 1; i > 0; --i) {
+    selects->relations[i] = selects->relations[i-1];
+  }
+  selects->relations[0] = strdup(relation_name);
 }
 
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num)

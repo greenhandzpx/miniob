@@ -397,25 +397,40 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
   SessionEvent *session_event = sql_event->session_event();
   RC rc = RC::SUCCESS;
-  if (select_stmt->tables().size() != 1) {
-    LOG_WARN("select more than 1 tables is not supported");
-    rc = RC::UNIMPLENMENT;
-    return rc;
-  }
+  // if (select_stmt->tables().size() != 1) {
+  //   LOG_WARN("select more than 1 tables is not supported");
+  //   rc = RC::UNIMPLENMENT;
+  //   return rc;
+  // }
 
-  Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-  if (nullptr == scan_oper) {
-    scan_oper = new TableScanOperator(select_stmt->tables()[0]);
-  }
+  // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+  // if (nullptr == scan_oper) {
+  //   scan_oper = new TableScanOperator(select_stmt->tables()[0]);
+  // }
 
-  DEFER([&] () {delete scan_oper;});
+  // DEFER([&] () {delete scan_oper;});
 
   PredicateOperator pred_oper(select_stmt->filter_stmt());
-  pred_oper.add_child(scan_oper);
+
+  std::vector<Operator *> scan_opers(select_stmt->tables().size());
+  for (int i = 0; i< scan_opers.size(); ++i) {
+    printf("add scan oper %d\n", i);
+    scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+    if (nullptr == scan_opers[i]) {
+       // TODO memory leak
+      scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+    }
+    pred_oper.add_child(scan_opers[i]);
+  }
+
+
   ProjectOperator project_oper;
   project_oper.add_child(&pred_oper);
+
+  bool is_single_table = select_stmt->tables().size() == 1;
+
   for (const Field &field : select_stmt->query_fields()) {
-    project_oper.add_projection(field.table(), field.meta());
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
   rc = project_oper.open();
   if (rc != RC::SUCCESS) {
@@ -434,7 +449,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
       break;
     }
-
+    printf("do_select: get a tuple\n");
     tuple_to_string(ss, *tuple);
     ss << std::endl;
   }
