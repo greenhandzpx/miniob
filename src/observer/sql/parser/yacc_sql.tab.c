@@ -571,7 +571,7 @@ union yyalloc
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  34
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  78
+#define YYNRULES  79
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  166
 
@@ -627,14 +627,14 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   132,   132,   134,   138,   139,   140,   141,   142,   143,
-     144,   145,   146,   147,   148,   149,   150,   151,   152,   153,
-     154,   158,   163,   168,   174,   180,   186,   192,   198,   204,
-     211,   219,   226,   235,   237,   241,   252,   265,   268,   269,
-     270,   273,   282,   298,   300,   305,   308,   311,   318,   328,
-     338,   357,   362,   367,   372,   381,   383,   390,   397,   404,
-     406,   410,   412,   416,   418,   423,   444,   464,   484,   506,
-     527,   548,   570,   571,   572,   573,   574,   575,   579
+       0,   133,   133,   135,   139,   140,   141,   142,   143,   144,
+     145,   146,   147,   148,   149,   150,   151,   152,   153,   154,
+     155,   159,   164,   169,   175,   181,   187,   193,   199,   205,
+     212,   220,   227,   236,   238,   242,   253,   266,   269,   270,
+     271,   274,   283,   299,   301,   306,   309,   312,   319,   329,
+     339,   358,   363,   368,   373,   382,   384,   391,   398,   405,
+     407,   411,   413,   417,   419,   424,   445,   465,   485,   507,
+     528,   549,   571,   572,   573,   574,   575,   576,   577,   581
 };
 #endif
 
@@ -719,13 +719,13 @@ static const yytype_int8 yydefact[] =
        0,    52,     0,    29,    28,     0,    61,     0,     0,     0,
        0,    27,    31,    55,    55,    55,    59,     0,     0,     0,
        0,     0,    41,    33,     0,     0,     0,    56,    53,    54,
-       0,    61,     0,    45,    46,     0,    47,     0,    63,    48,
+       0,    61,     0,    45,    46,    78,    47,    78,    63,    48,
        0,     0,     0,     0,    38,    39,    40,    36,     0,    55,
       55,    59,     0,    43,     0,    72,    73,    74,    75,    76,
       77,     0,     0,     0,    62,    61,     0,    33,     0,     0,
-       0,    57,    58,    60,    50,     0,     0,     0,    67,    65,
+       0,    57,    58,    60,    50,     0,     0,    78,    67,    65,
       68,    66,    63,     0,     0,    34,    32,    37,     0,     0,
-      43,     0,     0,     0,    64,    49,    78,    35,    30,    44,
+      43,     0,     0,     0,    64,    49,    79,    35,    30,    44,
       42,     0,    69,    70,     0,    71
 };
 
@@ -823,7 +823,7 @@ static const yytype_int8 yyr1[] =
       69,    70,    71,    72,    72,    73,    73,    73,    74,    75,
       76,    77,    77,    77,    77,    78,    78,    78,    78,    79,
       79,    80,    80,    81,    81,    82,    82,    82,    82,    82,
-      82,    82,    83,    83,    83,    83,    83,    83,    84
+      82,    82,    83,    83,    83,    83,    83,    83,    83,    84
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -836,7 +836,7 @@ static const yytype_int8 yyr2[] =
        1,     1,     9,     0,     3,     1,     1,     1,     5,     8,
        7,     1,     2,     4,     4,     0,     3,     5,     5,     0,
        3,     0,     3,     0,     3,     3,     3,     3,     3,     5,
-       5,     7,     1,     1,     1,     1,     1,     1,     8
+       5,     7,     1,     1,     1,     1,     1,     1,     0,     8
 };
 
 
@@ -1308,7 +1308,7 @@ yyreduce:
   switch (yyn)
     {
   case 21: /* exit: EXIT SEMICOLON  */
-#line 158 "yacc_sql.y"
+#line 159 "yacc_sql.y"
                    {
         CONTEXT->ssql->flag=SCF_EXIT;//"exit";
     }
@@ -1316,7 +1316,7 @@ yyreduce:
     break;
 
   case 22: /* help: HELP SEMICOLON  */
-#line 163 "yacc_sql.y"
+#line 164 "yacc_sql.y"
                    {
         CONTEXT->ssql->flag=SCF_HELP;//"help";
     }
@@ -1324,7 +1324,7 @@ yyreduce:
     break;
 
   case 23: /* sync: SYNC SEMICOLON  */
-#line 168 "yacc_sql.y"
+#line 169 "yacc_sql.y"
                    {
       CONTEXT->ssql->flag = SCF_SYNC;
     }
@@ -1332,7 +1332,7 @@ yyreduce:
     break;
 
   case 24: /* begin: TRX_BEGIN SEMICOLON  */
-#line 174 "yacc_sql.y"
+#line 175 "yacc_sql.y"
                         {
       CONTEXT->ssql->flag = SCF_BEGIN;
     }
@@ -1340,7 +1340,7 @@ yyreduce:
     break;
 
   case 25: /* commit: TRX_COMMIT SEMICOLON  */
-#line 180 "yacc_sql.y"
+#line 181 "yacc_sql.y"
                          {
       CONTEXT->ssql->flag = SCF_COMMIT;
     }
@@ -1348,7 +1348,7 @@ yyreduce:
     break;
 
   case 26: /* rollback: TRX_ROLLBACK SEMICOLON  */
-#line 186 "yacc_sql.y"
+#line 187 "yacc_sql.y"
                            {
       CONTEXT->ssql->flag = SCF_ROLLBACK;
     }
@@ -1356,7 +1356,7 @@ yyreduce:
     break;
 
   case 27: /* drop_table: DROP TABLE ID SEMICOLON  */
-#line 192 "yacc_sql.y"
+#line 193 "yacc_sql.y"
                             {
         CONTEXT->ssql->flag = SCF_DROP_TABLE;//"drop_table";
         drop_table_init(&CONTEXT->ssql->sstr.drop_table, (yyvsp[-1].string));
@@ -1365,7 +1365,7 @@ yyreduce:
     break;
 
   case 28: /* show_tables: SHOW TABLES SEMICOLON  */
-#line 198 "yacc_sql.y"
+#line 199 "yacc_sql.y"
                           {
       CONTEXT->ssql->flag = SCF_SHOW_TABLES;
     }
@@ -1373,7 +1373,7 @@ yyreduce:
     break;
 
   case 29: /* desc_table: DESC ID SEMICOLON  */
-#line 204 "yacc_sql.y"
+#line 205 "yacc_sql.y"
                       {
       CONTEXT->ssql->flag = SCF_DESC_TABLE;
       desc_table_init(&CONTEXT->ssql->sstr.desc_table, (yyvsp[-1].string));
@@ -1382,7 +1382,7 @@ yyreduce:
     break;
 
   case 30: /* create_index: CREATE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON  */
-#line 212 "yacc_sql.y"
+#line 213 "yacc_sql.y"
                 {
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
 			create_index_init(&CONTEXT->ssql->sstr.create_index, (yyvsp[-6].string), (yyvsp[-4].string), (yyvsp[-2].string));
@@ -1391,7 +1391,7 @@ yyreduce:
     break;
 
   case 31: /* drop_index: DROP INDEX ID SEMICOLON  */
-#line 220 "yacc_sql.y"
+#line 221 "yacc_sql.y"
                 {
 			CONTEXT->ssql->flag=SCF_DROP_INDEX;//"drop_index";
 			drop_index_init(&CONTEXT->ssql->sstr.drop_index, (yyvsp[-1].string));
@@ -1400,7 +1400,7 @@ yyreduce:
     break;
 
   case 32: /* create_table: CREATE TABLE ID LBRACE attr_def attr_def_list RBRACE SEMICOLON  */
-#line 227 "yacc_sql.y"
+#line 228 "yacc_sql.y"
                 {
 			CONTEXT->ssql->flag=SCF_CREATE_TABLE;//"create_table";
 			// CONTEXT->ssql->sstr.create_table.attribute_count = CONTEXT->value_length;
@@ -1412,13 +1412,13 @@ yyreduce:
     break;
 
   case 34: /* attr_def_list: COMMA attr_def attr_def_list  */
-#line 237 "yacc_sql.y"
+#line 238 "yacc_sql.y"
                                    {    }
 #line 1418 "yacc_sql.tab.c"
     break;
 
   case 35: /* attr_def: ID_get type LBRACE number RBRACE  */
-#line 242 "yacc_sql.y"
+#line 243 "yacc_sql.y"
                 {
 			AttrInfo attribute;
 			attr_info_init(&attribute, CONTEXT->id, (yyvsp[-3].number), (yyvsp[-1].number));
@@ -1433,7 +1433,7 @@ yyreduce:
     break;
 
   case 36: /* attr_def: ID_get type  */
-#line 253 "yacc_sql.y"
+#line 254 "yacc_sql.y"
                 {
 			AttrInfo attribute;
 			attr_info_init(&attribute, CONTEXT->id, (yyvsp[0].number), 4);
@@ -1448,31 +1448,31 @@ yyreduce:
     break;
 
   case 37: /* number: NUMBER  */
-#line 265 "yacc_sql.y"
+#line 266 "yacc_sql.y"
                        {(yyval.number) = (yyvsp[0].number);}
 #line 1454 "yacc_sql.tab.c"
     break;
 
   case 38: /* type: INT_T  */
-#line 268 "yacc_sql.y"
+#line 269 "yacc_sql.y"
               { (yyval.number)=INTS; }
 #line 1460 "yacc_sql.tab.c"
     break;
 
   case 39: /* type: STRING_T  */
-#line 269 "yacc_sql.y"
+#line 270 "yacc_sql.y"
                   { (yyval.number)=CHARS; }
 #line 1466 "yacc_sql.tab.c"
     break;
 
   case 40: /* type: FLOAT_T  */
-#line 270 "yacc_sql.y"
+#line 271 "yacc_sql.y"
                  { (yyval.number)=FLOATS; }
 #line 1472 "yacc_sql.tab.c"
     break;
 
   case 41: /* ID_get: ID  */
-#line 274 "yacc_sql.y"
+#line 275 "yacc_sql.y"
         {
 		char *temp=(yyvsp[0].string); 
 		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
@@ -1481,7 +1481,7 @@ yyreduce:
     break;
 
   case 42: /* insert: INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON  */
-#line 283 "yacc_sql.y"
+#line 284 "yacc_sql.y"
                 {
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -1500,7 +1500,7 @@ yyreduce:
     break;
 
   case 44: /* value_list: COMMA value value_list  */
-#line 300 "yacc_sql.y"
+#line 301 "yacc_sql.y"
                               { 
   		// CONTEXT->values[CONTEXT->value_length++] = *$2;
 	  }
@@ -1508,7 +1508,7 @@ yyreduce:
     break;
 
   case 45: /* value: NUMBER  */
-#line 305 "yacc_sql.y"
+#line 306 "yacc_sql.y"
           {	
   		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], (yyvsp[0].number));
 		}
@@ -1516,7 +1516,7 @@ yyreduce:
     break;
 
   case 46: /* value: FLOAT  */
-#line 308 "yacc_sql.y"
+#line 309 "yacc_sql.y"
           {
   		value_init_float(&CONTEXT->values[CONTEXT->value_length++], (yyvsp[0].floats));
 		}
@@ -1524,7 +1524,7 @@ yyreduce:
     break;
 
   case 47: /* value: SSS  */
-#line 311 "yacc_sql.y"
+#line 312 "yacc_sql.y"
          {
 			(yyvsp[0].string) = substr((yyvsp[0].string),1,strlen((yyvsp[0].string))-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], (yyvsp[0].string));
@@ -1533,7 +1533,7 @@ yyreduce:
     break;
 
   case 48: /* delete: DELETE FROM ID where SEMICOLON  */
-#line 319 "yacc_sql.y"
+#line 320 "yacc_sql.y"
                 {
 			CONTEXT->ssql->flag = SCF_DELETE;//"delete";
 			deletes_init_relation(&CONTEXT->ssql->sstr.deletion, (yyvsp[-2].string));
@@ -1545,7 +1545,7 @@ yyreduce:
     break;
 
   case 49: /* update: UPDATE ID SET ID EQ value where SEMICOLON  */
-#line 329 "yacc_sql.y"
+#line 330 "yacc_sql.y"
                 {
 			CONTEXT->ssql->flag = SCF_UPDATE;//"update";
 			Value *value = &CONTEXT->values[0];
@@ -1557,7 +1557,7 @@ yyreduce:
     break;
 
   case 50: /* select: SELECT select_attr FROM ID rel_list where SEMICOLON  */
-#line 339 "yacc_sql.y"
+#line 340 "yacc_sql.y"
                 {
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, (yyvsp[-3].string));
@@ -1577,7 +1577,7 @@ yyreduce:
     break;
 
   case 51: /* select_attr: STAR  */
-#line 357 "yacc_sql.y"
+#line 358 "yacc_sql.y"
          {  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
@@ -1587,7 +1587,7 @@ yyreduce:
     break;
 
   case 52: /* select_attr: ID attr_list  */
-#line 362 "yacc_sql.y"
+#line 363 "yacc_sql.y"
                    {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, (yyvsp[-1].string));
@@ -1597,7 +1597,7 @@ yyreduce:
     break;
 
   case 53: /* select_attr: ID DOT ID attr_list  */
-#line 367 "yacc_sql.y"
+#line 368 "yacc_sql.y"
                               {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), (yyvsp[-1].string));
@@ -1607,7 +1607,7 @@ yyreduce:
     break;
 
   case 54: /* select_attr: ID DOT STAR attr_list  */
-#line 372 "yacc_sql.y"
+#line 373 "yacc_sql.y"
                                 {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), "*");
@@ -1620,7 +1620,7 @@ yyreduce:
     break;
 
   case 56: /* attr_list: COMMA ID attr_list  */
-#line 383 "yacc_sql.y"
+#line 384 "yacc_sql.y"
                          {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, (yyvsp[-1].string));
@@ -1632,7 +1632,7 @@ yyreduce:
     break;
 
   case 57: /* attr_list: COMMA ID DOT ID attr_list  */
-#line 390 "yacc_sql.y"
+#line 391 "yacc_sql.y"
                                 {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), (yyvsp[-1].string));
@@ -1644,7 +1644,7 @@ yyreduce:
     break;
 
   case 58: /* attr_list: COMMA ID DOT STAR attr_list  */
-#line 397 "yacc_sql.y"
+#line 398 "yacc_sql.y"
                                       {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), "*");
@@ -1654,7 +1654,7 @@ yyreduce:
     break;
 
   case 60: /* rel_list: COMMA ID rel_list  */
-#line 406 "yacc_sql.y"
+#line 407 "yacc_sql.y"
                         {	
 				selects_append_relation(&CONTEXT->ssql->sstr.selection, (yyvsp[-1].string));
 		  }
@@ -1662,7 +1662,7 @@ yyreduce:
     break;
 
   case 62: /* where: WHERE condition condition_list  */
-#line 412 "yacc_sql.y"
+#line 413 "yacc_sql.y"
                                      {	
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
 			}
@@ -1670,7 +1670,7 @@ yyreduce:
     break;
 
   case 64: /* condition_list: AND condition condition_list  */
-#line 418 "yacc_sql.y"
+#line 419 "yacc_sql.y"
                                    {
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
 			}
@@ -1678,7 +1678,7 @@ yyreduce:
     break;
 
   case 65: /* condition: ID comOp value  */
-#line 424 "yacc_sql.y"
+#line 425 "yacc_sql.y"
                 {
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, NULL, (yyvsp[-2].string));
@@ -1703,7 +1703,7 @@ yyreduce:
     break;
 
   case 66: /* condition: value comOp value  */
-#line 445 "yacc_sql.y"
+#line 446 "yacc_sql.y"
                 {
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 2];
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
@@ -1727,7 +1727,7 @@ yyreduce:
     break;
 
   case 67: /* condition: ID comOp ID  */
-#line 465 "yacc_sql.y"
+#line 466 "yacc_sql.y"
                 {
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, NULL, (yyvsp[-2].string));
@@ -1751,7 +1751,7 @@ yyreduce:
     break;
 
   case 68: /* condition: value comOp ID  */
-#line 485 "yacc_sql.y"
+#line 486 "yacc_sql.y"
                 {
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 			RelAttr right_attr;
@@ -1777,7 +1777,7 @@ yyreduce:
     break;
 
   case 69: /* condition: ID DOT ID comOp value  */
-#line 507 "yacc_sql.y"
+#line 508 "yacc_sql.y"
                 {
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, (yyvsp[-4].string), (yyvsp[-2].string));
@@ -1802,7 +1802,7 @@ yyreduce:
     break;
 
   case 70: /* condition: value comOp ID DOT ID  */
-#line 528 "yacc_sql.y"
+#line 529 "yacc_sql.y"
                 {
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
@@ -1827,7 +1827,7 @@ yyreduce:
     break;
 
   case 71: /* condition: ID DOT ID comOp ID DOT ID  */
-#line 549 "yacc_sql.y"
+#line 550 "yacc_sql.y"
                 {
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, (yyvsp[-6].string), (yyvsp[-4].string));
@@ -1850,43 +1850,43 @@ yyreduce:
     break;
 
   case 72: /* comOp: EQ  */
-#line 570 "yacc_sql.y"
+#line 571 "yacc_sql.y"
              { CONTEXT->comp = EQUAL_TO; }
 #line 1856 "yacc_sql.tab.c"
     break;
 
   case 73: /* comOp: LT  */
-#line 571 "yacc_sql.y"
+#line 572 "yacc_sql.y"
          { CONTEXT->comp = LESS_THAN; }
 #line 1862 "yacc_sql.tab.c"
     break;
 
   case 74: /* comOp: GT  */
-#line 572 "yacc_sql.y"
+#line 573 "yacc_sql.y"
          { CONTEXT->comp = GREAT_THAN; }
 #line 1868 "yacc_sql.tab.c"
     break;
 
   case 75: /* comOp: LE  */
-#line 573 "yacc_sql.y"
+#line 574 "yacc_sql.y"
          { CONTEXT->comp = LESS_EQUAL; }
 #line 1874 "yacc_sql.tab.c"
     break;
 
   case 76: /* comOp: GE  */
-#line 574 "yacc_sql.y"
+#line 575 "yacc_sql.y"
          { CONTEXT->comp = GREAT_EQUAL; }
 #line 1880 "yacc_sql.tab.c"
     break;
 
   case 77: /* comOp: NE  */
-#line 575 "yacc_sql.y"
+#line 576 "yacc_sql.y"
          { CONTEXT->comp = NOT_EQUAL; }
 #line 1886 "yacc_sql.tab.c"
     break;
 
-  case 78: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
-#line 580 "yacc_sql.y"
+  case 79: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
+#line 582 "yacc_sql.y"
                 {
 		  CONTEXT->ssql->flag = SCF_LOAD_DATA;
 			load_data_init(&CONTEXT->ssql->sstr.load_data, (yyvsp[-1].string), (yyvsp[-4].string));
@@ -2088,7 +2088,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 585 "yacc_sql.y"
+#line 587 "yacc_sql.y"
 
 //_____________________________________________________________________
 extern void scan_string(const char *str, yyscan_t scanner);
