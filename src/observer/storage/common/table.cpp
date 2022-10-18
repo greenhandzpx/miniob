@@ -771,9 +771,25 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
 RC Table::update_record(Trx *trx, Record *record) 
 {
   RC rc = RC::SUCCESS;
+
+  // TODO: support transaction
+
   // if (trx != nullptr) {
+  //   printf("update record:trx not null\n");
   //   rc = trx->update_record(this, record);
-  // } else {
+  //   rc = trx->delete_record(this, record);
+    
+  //   CLogRecord *clog_record = nullptr;
+  //   rc = clog_manager_->clog_gen_record(CLogType::REDO_DELETE, trx->get_current_id(), clog_record, name(), 0, record);
+  //   if (rc != RC::SUCCESS) {
+  //     LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
+  //     return rc;
+  //   }
+  //   rc = clog_manager_->clog_append_record(clog_record);
+  //   if (rc != RC::SUCCESS) {
+  //     return rc;
+  //   }
+  // }
 
   // printf("old record data %s\n", record->data());
 
@@ -854,6 +870,7 @@ RC Table::delete_record(Trx *trx, Record *record)
   }
 
   if (trx != nullptr) {
+    printf("delete record:trx not null\n");
     rc = trx->delete_record(this, record);
     
     CLogRecord *clog_record = nullptr;

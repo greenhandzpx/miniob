@@ -227,6 +227,11 @@ RC DiskBufferPool::close_file()
 
   hdr_frame_->pin_count_--;
   // TODO: 理论上是在回放时回滚未提交事务，但目前没有undo log，因此不下刷数据page，只通过redo log回放
+  // if ((rc = purge_all_pages()) != RC::SUCCESS) {
+  //   hdr_frame_->pin_count_++;
+  //   LOG_ERROR("Failed to close %s, due to failed to purge all pages.", file_name_.c_str());
+  //   return rc;
+  // }
   if ((rc = purge_page(0)) != RC::SUCCESS) {
     hdr_frame_->pin_count_++;
     LOG_ERROR("Failed to close %s, due to failed to purge all pages.", file_name_.c_str());
@@ -472,7 +477,7 @@ RC DiskBufferPool::flush_page(Frame &frame)
   }
   frame.dirty_ = false;
   LOG_DEBUG("Flush block. file desc=%d, page num=%d", file_desc_, page.page_num);
-
+  printf("flush page %d\n", page.page_num);
   return RC::SUCCESS;
 }
 

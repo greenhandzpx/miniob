@@ -193,6 +193,8 @@ RC RecordPageHandler::insert_record(const char *data, RID *rid)
     rid->slot_num = index;
   }
 
+  printf("insert_record: page_num %d, slot num %d\n", get_page_num(), index);
+
   // LOG_TRACE("Insert record. rid page_num=%d, slot num=%d", get_page_num(), index);
   return RC::SUCCESS;
 }
@@ -240,6 +242,7 @@ RC RecordPageHandler::update_record(const Record *rec)
     memcpy(record_data, rec->data(), page_header_->record_real_size);
     bitmap.set_bit(rec->rid().slot_num);
     frame_->mark_dirty();
+    printf("update_record: page_num %d, slot num %d\n", get_page_num(), rec->rid().slot_num);
     // LOG_TRACE("Update record. file_id=%d, page num=%d,slot=%d", file_id_, rec->rid.page_num, rec->rid.slot_num);
     return RC::SUCCESS;
   }
