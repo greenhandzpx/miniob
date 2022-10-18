@@ -16,4 +16,6 @@ compile_commands.json
 GRTAGS
 GPATH
 GTAGS
+.cache
+observer.log.*
 #*#
