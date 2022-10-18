@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include <unistd.h>
 
 #include "common/defs.h"
 #include "storage/common/table.h"
@@ -184,6 +185,54 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   }
   return rc;
 }
+
+
+RC Table::destroy(const char *dir) {
+  // flush the dirty pages
+  RC rc = sync();
+
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  // remove table meta file( *.table )
+  std::string table_meta_path = table_meta_file(dir, name());
+  if (unlink(table_meta_path.c_str()) != 0) {
+    LOG_ERROR("Failed to remove meta file=%s, errno=%d", table_meta_path.c_str(), errno);
+    return RC::GENERIC_ERROR;
+  }
+
+  // remove table data file( *.data )
+  std::string table_data_path = table_data_file(dir, name());
+  if (unlink(table_data_path.c_str()) != 0) {
+    LOG_ERROR("Failed to remove data file=%s, errno=%d", table_data_path.c_str(), errno);
+    return RC::GENERIC_ERROR;
+  }
+
+  // TODO: uncomment the following when finishing `text`
+
+  // remove text file
+  // std::string table_text_path = table_text_file(dir, name());
+  // if (unlink(table_text_path.c_str()) != 0) {
+  //   LOG_ERROR("Failed to remove text file=%s, errno=%d", table_text_path.c_str(), errno);
+  //   return RC::GENERIC_ERROR;
+  // }
+
+  // remove table index file( *.index )
+  const int index_num = table_meta_.index_num();
+  for (int i = 0; i < index_num; i++) {  // 清理所有的索引相关文件数据与索引元数据
+      ((BplusTreeIndex*)indexes_[i])->close();
+      const IndexMeta* index_meta = table_meta_.index(i);
+      std::string index_file = table_index_file(dir, name(), index_meta->name());
+      if(unlink(index_file.c_str()) != 0) {
+          LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
+          return RC::GENERIC_ERROR;
+      }
+  }
+
+  return RC::SUCCESS;
+}
+
 
 RC Table::commit_insert(Trx *trx, const RID &rid)
 {

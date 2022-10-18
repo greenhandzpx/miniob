@@ -166,41 +166,46 @@ void Trx::delete_operation(Table *table, const RID &rid)
 RC Trx::commit()
 {
   RC rc = RC::SUCCESS;
-  for (const auto &table_operations : operations_) {
-    Table *table = table_operations.first;
-    const OperationSet &operation_set = table_operations.second;
-    for (const Operation &operation : operation_set) {
 
-      RID rid;
-      rid.page_num = operation.page_num();
-      rid.slot_num = operation.slot_num();
+  /*
+    TODO: uncomment the followings and don't make the drop table crash(if the txn has insert or delete op)
+  */
 
-      switch (operation.type()) {
-        case Operation::Type::INSERT: {
-          rc = table->commit_insert(this, rid);
-          if (rc != RC::SUCCESS) {
-            // handle rc
-            LOG_ERROR(
-                "Failed to commit insert operation. rid=%d.%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
-          }
-        } break;
-        case Operation::Type::DELETE: {
-          rc = table->commit_delete(this, rid);
-          if (rc != RC::SUCCESS) {
-            // handle rc
-            LOG_ERROR(
-                "Failed to commit delete operation. rid=%d.%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
-          }
-        } break;
-        default: {
-          LOG_PANIC("Unknown operation. type=%d", (int)operation.type());
-        } break;
-      }
-    }
-  }
+  // for (const auto &table_operations : operations_) {
+  //   Table *table = table_operations.first;
+  //   const OperationSet &operation_set = table_operations.second;
+  //   for (const Operation &operation : operation_set) {
 
-  operations_.clear();
-  trx_id_ = 0;
+  //     RID rid;
+  //     rid.page_num = operation.page_num();
+  //     rid.slot_num = operation.slot_num();
+
+  //     switch (operation.type()) {
+  //       case Operation::Type::INSERT: {
+  //         rc = table->commit_insert(this, rid);
+  //         if (rc != RC::SUCCESS) {
+  //           // handle rc
+  //           LOG_ERROR(
+  //               "Failed to commit insert operation. rid=%d.%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
+  //         }
+  //       } break;
+  //       case Operation::Type::DELETE: {
+  //         rc = table->commit_delete(this, rid);
+  //         if (rc != RC::SUCCESS) {
+  //           // handle rc
+  //           LOG_ERROR(
+  //               "Failed to commit delete operation. rid=%d.%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
+  //         }
+  //       } break;
+  //       default: {
+  //         LOG_PANIC("Unknown operation. type=%d", (int)operation.type());
+  //       } break;
+  //     }
+  //   }
+  // }
+
+  // operations_.clear();
+  // trx_id_ = 0;
   return rc;
 }
 
