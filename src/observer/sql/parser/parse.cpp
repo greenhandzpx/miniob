@@ -154,25 +154,37 @@ void selects_destroy(Selects *selects)
   selects->condition_num = 0;
 }
 
-void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num)
+// void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num)
+void inserts_init(Inserts *inserts, const char *relation_name, Value tuples[][MAX_NUM], size_t tuple_num, size_t value_num[])
 {
-  assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
+  // assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
+  for (int i = 0; i < tuple_num; ++i) {
+    assert(value_num[i] <= sizeof(inserts->tuples[i]) / sizeof(inserts->tuples[i][0]));
+
+    for (size_t k = 0; k < value_num[i]; ++k) {
+      // printf("copy insert value\n");
+      printf("insert parse: value type: %d\n", tuples[i][k].type);
+      inserts->tuples[i][k] = tuples[i][k];
+    }
+    inserts->value_num[i] = value_num[i];
+  } 
+
+  inserts->tuple_num = tuple_num;
 
   inserts->relation_name = strdup(relation_name);
-  for (size_t i = 0; i < value_num; i++) {
-    inserts->values[i] = values[i];
-  }
-  inserts->value_num = value_num;
+
 }
 void inserts_destroy(Inserts *inserts)
 {
   free(inserts->relation_name);
   inserts->relation_name = nullptr;
 
-  for (size_t i = 0; i < inserts->value_num; i++) {
-    value_destroy(&inserts->values[i]);
+  for (size_t k = 0; k < inserts->tuple_num; ++k) {
+    for (size_t i = 0; i < inserts->value_num[k]; i++) {
+      value_destroy(&inserts->tuples[k][i]);
+    }
   }
-  inserts->value_num = 0;
+  inserts->tuple_num = 0;
 }
 
 void deletes_init_relation(Deletes *deletes, const char *relation_name)

@@ -8,6 +8,8 @@ struct ParserContext;
 extern int atoi();
 extern double atof();
 
+#define YYDEBUG 1 
+
 #if YYDEBUG > 0
 #define debug_printf  printf
 #else

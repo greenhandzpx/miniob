@@ -32,6 +32,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
+#include "sql/operator/update_operator.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/update_stmt.h"
@@ -560,8 +561,72 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
   InsertStmt *insert_stmt = (InsertStmt *)stmt;
   Table *table = insert_stmt->table();
 
-  RC rc = table->insert_record(trx, insert_stmt->value_amount(), insert_stmt->values());
-  if (rc == RC::SUCCESS) {
+  RC rc = RC::SUCCESS;
+  printf("tuple amount %zu\n", insert_stmt->tuple_amount());
+  for (int i = 0; i < insert_stmt->tuple_amount(); ++i) {
+    rc = table->insert_record(trx, insert_stmt->value_amount()[i], insert_stmt->tuples()[i]);
+    if (rc == RC::SUCCESS) {
+      continue;
+    } else {
+      printf("fail to insert\n");
+      session_event->set_response("FAILURE\n");
+      return rc;
+    }
+  }
+
+  if (!session->is_trx_multi_operation_mode()) {
+    CLogRecord *clog_record = nullptr;
+    rc = clog_manager->clog_gen_record(CLogType::REDO_MTR_COMMIT, trx->get_current_id(), clog_record);
+    if (rc != RC::SUCCESS || clog_record == nullptr) {
+      session_event->set_response("FAILURE\n");
+      return rc;
+    }
+
+    rc = clog_manager->clog_append_record(clog_record);
+    if (rc != RC::SUCCESS) {
+      session_event->set_response("FAILURE\n");
+      return rc;
+    } 
+    printf("is not trx multi\n");
+    trx->next_current_id();
+    session_event->set_response("SUCCESS\n");
+  } else {
+    session_event->set_response("SUCCESS\n");
+  }
+
+  session_event->set_response("SUCCESS\n");
+
+
+  return rc;
+}
+
+RC ExecuteStage::do_update(SQLStageEvent *sql_event)
+{
+  Stmt *stmt = sql_event->stmt();
+  SessionEvent *session_event = sql_event->session_event();
+
+  if (stmt == nullptr) {
+    LOG_WARN("cannot find statement");
+    return RC::GENERIC_ERROR;
+  }
+
+  Session *session = session_event->session();
+  Db *db = session->get_current_db();
+  Trx *trx = session->current_trx();
+  CLogManager *clog_manager = db->get_clog_manager();
+  UpdateStmt *update_stmt = dynamic_cast<UpdateStmt *>(stmt);
+
+  TableScanOperator scan_oper(update_stmt->table());
+  PredicateOperator pred_oper(update_stmt->filter_stmt());
+  pred_oper.add_child(&scan_oper);
+  UpdateOperator update_oper(update_stmt, trx);
+  update_oper.add_child(&pred_oper);
+
+  RC rc = update_oper.open();
+  if (rc != RC::SUCCESS) {
+    session_event->set_response("FAILURE\n");
+  } else {
+    session_event->set_response("SUCCESS\n");
     if (!session->is_trx_multi_operation_mode()) {
       CLogRecord *clog_record = nullptr;
       rc = clog_manager->clog_gen_record(CLogType::REDO_MTR_COMMIT, trx->get_current_id(), clog_record);
@@ -578,37 +643,37 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
 
       trx->next_current_id();
       session_event->set_response("SUCCESS\n");
-    } else {
-      session_event->set_response("SUCCESS\n");
     }
-  } else {
-    session_event->set_response("FAILURE\n");
-  }
-  return rc;
-}
-
-RC ExecuteStage::do_update(SQLStageEvent *sql_event)
-{
-  Stmt *stmt = sql_event->stmt();
-  SessionEvent *session_event = sql_event->session_event();
-
-  if (stmt == nullptr) {
-    LOG_WARN("cannot find statement");
-    return RC::GENERIC_ERROR;
   }
 
-  const Updates &updates = sql_event->query()->sstr.update;
-  UpdateStmt *update_stmt = dynamic_cast<UpdateStmt *>(stmt);
+  // const Updates &updates = sql_event->query()->sstr.update;
+  // Table *table = update_stmt->table();
 
-  Table *table = update_stmt->table();
-  int updated_count;
-  RC rc = table->update_record(nullptr, updates.attribute_name, &updates.value,
-    updates.condition_num, updates.conditions, &updated_count);
-  if (rc == RC::SUCCESS) {
-    session_event->set_response("SUCCESS\n");
-  } else {
-    session_event->set_response("FAILURE\n");
-  }
+  // int updated_count;
+  // RC rc = table->update_record(trx, updates.attribute_name, &updates.value,
+  //   updates.condition_num, updates.conditions, &updated_count);
+  // if (rc == RC::SUCCESS) {
+  //   session_event->set_response("SUCCESS\n");
+  //   if (!session->is_trx_multi_operation_mode()) {
+  //     CLogRecord *clog_record = nullptr;
+  //     rc = clog_manager->clog_gen_record(CLogType::REDO_MTR_COMMIT, trx->get_current_id(), clog_record);
+  //     if (rc != RC::SUCCESS || clog_record == nullptr) {
+  //       session_event->set_response("FAILURE\n");
+  //       return rc;
+  //     }
+
+  //     rc = clog_manager->clog_append_record(clog_record);
+  //     if (rc != RC::SUCCESS) {
+  //       session_event->set_response("FAILURE\n");
+  //       return rc;
+  //     } 
+
+  //     trx->next_current_id();
+  //     session_event->set_response("SUCCESS\n");
+  //   }
+  // } else {
+  //   session_event->set_response("FAILURE\n");
+  // }
   return rc;
 }
 

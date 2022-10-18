@@ -26,7 +26,7 @@ public:
 
   UpdateStmt() = default;
   // UpdateStmt(Table *table, Value *values, int value_amount);
-  UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt);
+  UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt, const char *attribute_name);
 
 public:
   static RC create(Db *db, const Updates &update_sql, Stmt *&stmt);
@@ -36,11 +36,14 @@ public:
   const Value *values() const { return values_; }
   int value_amount() const { return value_amount_; }
   StmtType type() const override { return StmtType::UPDATE; }
+  FilterStmt *filter_stmt() const { return filter_stmt_; }
+  const char *attribute_name() const { return attribute_name_; }
 
 private:
   Table *table_ = nullptr;
   const Value *values_ = nullptr;
   int value_amount_ = 0;
   FilterStmt *filter_stmt_ = nullptr;
+  const char *attribute_name_;
 };
 

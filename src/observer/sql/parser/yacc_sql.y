@@ -15,6 +15,11 @@ typedef struct ParserContext {
   size_t select_length;
   size_t condition_length;
   size_t from_length;
+
+  size_t tuple_num;
+  size_t value_num[MAX_NUM];       // Length of values
+  Value tuples[MAX_NUM][MAX_NUM];  // values to insert
+
   size_t value_length;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
@@ -43,8 +48,12 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
-  context->ssql->sstr.insertion.value_num = 0;
+//   context->ssql->sstr.insertion.value_num = 0;
+  for (int i = 0; i < MAX_NUM; ++i) {
+  	context->ssql->sstr.insertion.value_num[i] = 0;
+  }
   printf("parse sql failed. error=%s", str);
+
 }
 
 ParserContext *get_context(yyscan_t scanner)
@@ -280,7 +289,8 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+    /* INSERT INTO ID VALUES LBRACE value value_list RBRACE tuple_list SEMICOLON  */
+    INSERT INTO ID VALUES tuple tuple_list SEMICOLON 
 		{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -290,28 +300,47 @@ insert:				/*insert   语句的语法解析树*/
 			// for(i = 0; i < CONTEXT->value_length; i++){
 			// 	CONTEXT->ssql->sstr.insertion.values[i] = CONTEXT->values[i];
       // }
-			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			// inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->tuples, CONTEXT->tuple_num, CONTEXT->value_num);
 
       //临时变量清零
-      CONTEXT->value_length=0;
-    }
+	  CONTEXT->tuple_num = 0;
+    };
+
+tuple:
+	LBRACE value value_list RBRACE {
+		CONTEXT->tuple_num++;
+		printf("yacc: tuple num %d\n", CONTEXT->tuple_num);
+	};
+
+tuple_list:
+	/* empty */
+	| COMMA tuple tuple_list {
+	};
 
 value_list:
     /* empty */
     | COMMA value value_list  { 
   		// CONTEXT->values[CONTEXT->value_length++] = *$2;
+
 	  }
     ;
 value:
     NUMBER{	
   		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+  		value_init_integer(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++], $1);
+		printf("yacc: tuple num %d, value num %d type %d\n", CONTEXT->tuple_num, CONTEXT->value_num[CONTEXT->tuple_num], CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]-1].type);
 		}
     |FLOAT{
   		value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+		value_init_float(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++], $1);
+		printf("yacc: tuple num %d, value num %d type %d\n", CONTEXT->tuple_num, CONTEXT->value_num[CONTEXT->tuple_num], CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]-1].type);
 		}
     |SSS {
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+		value_init_string(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++], $1);
+		printf("yacc: tuple num %d, value num %d type %d\n", CONTEXT->tuple_num, CONTEXT->value_num[CONTEXT->tuple_num], CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]-1].type);
 		}
     ;
     
@@ -351,6 +380,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->tuple_num = 0;
 	}
 	;
 

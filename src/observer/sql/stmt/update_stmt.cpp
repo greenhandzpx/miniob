@@ -18,8 +18,8 @@ See the Mulan PSL v2 for more details. */
 
 // UpdateStmt::UpdateStmt(Table *table, Value *values, int value_amount)
 //   : table_ (table), values_(values), value_amount_(value_amount)
-UpdateStmt::UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt)
-  : table_ (table), values_(values), value_amount_(value_amount), filter_stmt_(filter_stmt)
+UpdateStmt::UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt, const char *attribute_name)
+  : table_ (table), values_(values), value_amount_(value_amount), filter_stmt_(filter_stmt), attribute_name_(attribute_name)
 {}
 
 RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
@@ -53,6 +53,6 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
     return rc;
   }
 
-  stmt = new UpdateStmt(table, &update.value, 1, filter_stmt);
+  stmt = new UpdateStmt(table, &update.value, 1, filter_stmt, update.attribute_name);
   return rc;
 }

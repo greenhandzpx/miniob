@@ -531,6 +531,8 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
         break;
       }
       record_count++;
+    } else {
+      printf("scan_record: no trx or not visible\n");
     }
   }
 
@@ -772,13 +774,38 @@ RC Table::update_record(Trx *trx, Record *record)
 {
   RC rc = RC::SUCCESS;
 
+
+  // then update new index
+  rc = insert_entry_of_indexes(record->data(), record->rid());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
+                record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
+  } else {
+    // update the record
+    rc = record_handler_->update_record(record);
+  }
+
   // TODO: support transaction
 
   // if (trx != nullptr) {
+  //   trx->init_trx_info(this, *record);
+
   //   printf("update record:trx not null\n");
-  //   rc = trx->update_record(this, record);
-  //   rc = trx->delete_record(this, record);
-    
+  //   rc = trx->insert_record(this, record);
+
+  //   // TODO: handle transaction here
+  //   if (rc != RC::SUCCESS) {
+  //     LOG_ERROR("Failed to log operation(insertion) to trx");
+
+  //     RC rc2 = record_handler_->delete_record(&record->rid());
+  //     if (rc2 != RC::SUCCESS) {
+  //       LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+  //           name(),
+  //           rc2,
+  //           strrc(rc2));
+  //     }
+  //     return rc;
+  //   }
   //   CLogRecord *clog_record = nullptr;
   //   rc = clog_manager_->clog_gen_record(CLogType::REDO_DELETE, trx->get_current_id(), clog_record, name(), 0, record);
   //   if (rc != RC::SUCCESS) {
@@ -791,22 +818,9 @@ RC Table::update_record(Trx *trx, Record *record)
   //   }
   // }
 
-  // printf("old record data %s\n", record->data());
-
-  // then update new index
-  rc = insert_entry_of_indexes(record->data(), record->rid());
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
-                record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
-  } else {
-    // update the record
-    rc = record_handler_->update_record(record);
-  }
-
   // }
   return rc;
 
-  return RC::SUCCESS;
 }
 
 class RecordDeleter {
