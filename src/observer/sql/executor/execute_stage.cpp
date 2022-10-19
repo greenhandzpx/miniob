@@ -795,7 +795,6 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
   std::vector<Index *> indexes = table->all_indexes();
   std::stringstream ss;
   auto size = indexes.size();
-  int i = 1;
   ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
   for (const auto & index : indexes) {
     ss << table->name() << " | ";
@@ -805,7 +804,8 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
       session_event->set_response("FAILURE\n");
       return RC::INTERNAL;
     }
-    ss << index->index_meta().name() << " | " << i++ << " | " << index->index_meta().field() << std::endl;
+    // 此处暂无多列索引故无脑输入1。支持多列索引后再改为该列在多列索引中的位置。
+    ss << index->index_meta().name() << " | " << 1 << " | " << index->index_meta().field() << std::endl;
   }
   session_event->set_response(ss.str().c_str());
   return RC::SUCCESS;
