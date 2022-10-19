@@ -501,23 +501,9 @@ extern int yylex \
 #undef yyTABLES_NAME
 #endif
 
-<<<<<<< HEAD
 #line 95 "lex_sql.l"
 
 
 #line 508 "lex.yy.h"
-=======
-<<<<<<< HEAD
-#line 90 "lex_sql.l"
-
-
-#line 507 "lex.yy.h"
-=======
-#line 93 "lex_sql.l"
-
-
-#line 508 "lex.yy.h"
->>>>>>> null
->>>>>>> ae48813af7c2331e653f6dc70da65d9712525799
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */
