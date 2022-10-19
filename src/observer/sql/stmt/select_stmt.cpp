@@ -76,13 +76,12 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
       if (select_sql.aggregation_num > 0) {
         // if this is an aggregation op
         // then it must be COUNT
-        // and we can randomly pick a field for it 
+        // and we just push an empty field
         if (select_sql.aggregation_ops[i] != COUNT_OP) {
           return RC::GENERIC_ERROR;
         }
 
-        query_fields.push_back(Field(tables[0], tables[0]->table_meta().field(0)));
-
+        query_fields.push_back(Field());
       } else {
 
         for (Table *table : tables) {

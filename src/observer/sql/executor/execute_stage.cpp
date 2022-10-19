@@ -235,7 +235,38 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
     }
   }
 }
-
+void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
+  auto aggregation_ops = select_stmt->aggregation_ops();
+  for (int i = 0; i < aggregation_ops.size(); ++i) {
+    AggregationOp aggregation_op = aggregation_ops[i];
+    if (i != 0) {
+      os << " | ";
+    }
+    switch (aggregation_op) {
+      case COUNT_OP: {
+        os << "COUNT(";
+      } break;
+      case AVG_OP: {
+        os << "AVG(";
+      } break;
+      case MAX_OP: {
+        os << "MAX(";
+      } break;
+      case MIN_OP: {
+        os << "MIN(";
+      } break;
+      default: break;
+    }
+    size_t n = select_stmt->query_fields().size();
+    printf("n : %zu\n", n);
+    if (select_stmt->query_fields()[n-i-1].meta() == nullptr) {
+      os << "*)";
+    } else {
+      os << select_stmt->query_fields()[n-i-1].meta()->name() << ")";
+    }
+  }
+  os << '\n';
+}
 void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 {
   const int cell_num = oper.tuple_cell_num();
@@ -502,7 +533,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       TupleCell cell;
 
       size_t n = select_stmt->query_fields().size();
-      if (tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
+      if (select_stmt->query_fields()[n-i-1].meta() != nullptr && tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
         LOG_WARN("cannot get the cell value");
         break;
       }
@@ -626,6 +657,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   bool is_single_table = select_stmt->tables().size() == 1;
 
   for (const Field &field : select_stmt->query_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
   rc = project_oper.open();
@@ -638,6 +672,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   std::stringstream ss;
 
   if (!select_stmt->aggregation_ops().empty()) {
+    print_aggregation_header(ss, select_stmt);
     // aggregation 
     std::vector<Value> values(select_stmt->aggregation_ops().size());
     printf("select aggregation: op size %zu\n", values.size());
