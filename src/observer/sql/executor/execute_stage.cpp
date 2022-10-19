@@ -177,6 +177,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     case SCF_DESC_TABLE: {
       do_desc_table(sql_event);
     } break;
+    case SCF_SHOW_INDEX: {
+      do_show_index(sql_event);
+    } break;
 
     case SCF_DROP_TABLE:
     case SCF_DROP_INDEX:
@@ -778,6 +781,33 @@ RC ExecuteStage::do_show_tables(SQLStageEvent *sql_event)
     }
     session_event->set_response(ss.str().c_str());
   }
+  return RC::SUCCESS;
+}
+
+RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
+  SessionEvent *session_event = sql_event->session_event();
+  Db *db = session_event->session()->get_current_db();
+  Table *table = db->find_table(sql_event->query()->sstr.show_index.relation_name);
+  if (nullptr == table) {
+    session_event->set_response("FAILURE\n");
+    return RC::INTERNAL;
+  }
+  std::vector<Index *> indexes = table->all_indexes();
+  std::stringstream ss;
+  auto size = indexes.size();
+  int i = 1;
+  ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
+  for (const auto & index : indexes) {
+    ss << table->name() << " | ";
+    // 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
+    ss << 1 << " | ";
+    if (nullptr == index) {
+      session_event->set_response("FAILURE\n");
+      return RC::INTERNAL;
+    }
+    ss << index->index_meta().name() << " | " << i++ << " | " << index->index_meta().field() << std::endl;
+  }
+  session_event->set_response(ss.str().c_str());
   return RC::SUCCESS;
 }
 

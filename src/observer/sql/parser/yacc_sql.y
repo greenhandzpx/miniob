@@ -164,6 +164,7 @@ command:
 	| create_table
 	| drop_table
 	| show_tables
+	| show_index
 	| desc_table
 	| create_index	
 	| drop_index
@@ -221,6 +222,13 @@ show_tables:
       CONTEXT->ssql->flag = SCF_SHOW_TABLES;
     }
     ;
+
+show_index:
+	SHOW INDEX FROM ID SEMICOLON {
+		CONTEXT->ssql->flag = SCF_SHOW_INDEX;
+		show_index_init(&CONTEXT->ssql->sstr.show_index, $4);
+	}
+	;
 
 desc_table:
     DESC ID SEMICOLON {
