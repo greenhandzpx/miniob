@@ -16,8 +16,12 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_SQL_EXECUTE_STAGE_H__
 
 #include "common/seda/stage.h"
+#include "sql/expr/tuple.h"
+#include "sql/operator/project_operator.h"
 #include "sql/parser/parse.h"
 #include "rc.h"
+#include "sql/parser/parse_defs.h"
+#include <vector>
 
 class SQLStageEvent;
 class SessionEvent;
@@ -51,6 +55,16 @@ protected:
   RC do_begin(SQLStageEvent *sql_event);
   RC do_commit(SQLStageEvent *sql_event);
   RC do_clog_sync(SQLStageEvent *sql_event);
+
+public:
+  /**
+    get a tuple at a time
+  */
+  static RC normal_select_handler(SelectStmt *select_stmt, Tuple *&tuple, ProjectOperator &project_oper);
+  /**
+    get values(the size of which is the num of aggregation op)
+  */
+  static RC aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper);
 
 protected:
 private:

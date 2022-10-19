@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/stmt/select_stmt.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
@@ -43,6 +44,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     return RC::INVALID_ARGUMENT;
   }
 
+
   // collect tables in `from` statement
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
@@ -69,11 +71,32 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     const RelAttr &relation_attr = select_sql.attributes[i];
 
     if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
-      for (Table *table : tables) {
-        wildcard_fields(table, query_fields);
+
+      // select * from t1, t2
+      if (select_sql.aggregation_num > 0) {
+        // if this is an aggregation op
+        // then it must be COUNT
+        // and we can randomly pick a field for it 
+        if (select_sql.aggregation_ops[i] != COUNT_OP) {
+          return RC::GENERIC_ERROR;
+        }
+
+        query_fields.push_back(Field(tables[0], tables[0]->table_meta().field(0)));
+
+      } else {
+
+        for (Table *table : tables) {
+          wildcard_fields(table, query_fields);
+        }
+
       }
 
+
     } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
+
+      // select t1.id from t1, t2
+      // select t1.* from t1, t2
+
       const char *table_name = relation_attr.relation_name;
       const char *field_name = relation_attr.attribute_name;
 
@@ -106,6 +129,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         }
       }
     } else {
+
+      // select id from t1
+
       if (tables.size() != 1) {
         LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
         return RC::SCHEMA_FIELD_MISSING;
@@ -138,11 +164,17 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     return rc;
   }
 
+  std::vector<AggregationOp> aggregation_ops(select_sql.aggregation_num);
+  for (int i = 0; i < select_sql.aggregation_num; ++i) {
+    aggregation_ops[i] = select_sql.aggregation_ops[i];
+  }
+
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->aggregation_ops_ = aggregation_ops;
   stmt = select_stmt;
   return RC::SUCCESS;
 }

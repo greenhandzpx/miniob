@@ -113,6 +113,10 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
   selects->attributes[selects->attr_num++] = *rel_attr;
 }
+void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
+{
+  selects->aggregation_ops[selects->aggregation_num++] = aggregation_op;
+}
 void selects_append_relation(Selects *selects, const char *relation_name)
 {
   // selects->relations[selects->relation_num++] = strdup(relation_name);
