@@ -123,6 +123,8 @@ ParserContext *get_context(yyscan_t scanner)
 		MAX
 		MIN
 		/* UNEQ */
+		INNER
+		JOIN
 
 %union {
   struct _Attr *attr;
@@ -524,7 +526,17 @@ rel_list:
     | COMMA ID rel_list {	
 				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
 		  }
+	| INNER JOIN ID on_list rel_list {
+				selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+	}
     ;
+
+on_list:
+	/*  empty */
+	| ON condition condition_list {
+
+	};
+
 where:
     /* empty */ 
     | WHERE condition condition_list {	
