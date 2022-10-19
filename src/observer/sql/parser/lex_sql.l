@@ -76,6 +76,14 @@ QUOTE            [\'\"]
 [Dd][Aa][Tt][Ee]                      RETURN_TOKEN(DATE_T);  // 增加DATE的token，需要在yacc文件中增加DATE_T的token
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]      RETURN_TOKEN(NULLABLE);
 
+[Cc][Oo][Uu][Nn][Tt]                                 RETURN_TOKEN(COUNT);
+[Aa][Vv][Gg]                                         RETURN_TOKEN(AVG);
+[Mm][Aa][Xx]                                         RETURN_TOKEN(MAX);
+[Mm][Ii][Nn]                                         RETURN_TOKEN(MIN);
+
+
+
+
 {ID}                                                 yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("                                                  RETURN_TOKEN(LBRACE);
 ")"                                                  RETURN_TOKEN(RBRACE);

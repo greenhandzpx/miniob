@@ -40,6 +40,14 @@ typedef enum {
   NO_OP
 } CompOp;
 
+typedef enum {
+  NO_AGGREGATION_OP,
+  COUNT_OP,
+  AVG_OP,
+  MAX_OP,
+  MIN_OP,
+} AggregationOp;
+
 //属性值类型
 typedef enum
 {
@@ -76,6 +84,9 @@ typedef struct {
   char *relations[MAX_NUM];       // relations in From clause
   size_t condition_num;           // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
+
+  size_t aggregation_num;
+  AggregationOp aggregation_ops[MAX_NUM];
 } Selects;
 
 // struct of insert
@@ -211,6 +222,7 @@ void attr_info_destroy(AttrInfo *attr_info);
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
+void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
 void selects_destroy(Selects *selects);
 

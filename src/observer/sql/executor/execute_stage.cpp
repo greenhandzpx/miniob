@@ -12,10 +12,14 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Longda on 2021/4/13.
 //
 
+#include <cstring>
+#include <limits>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 #include "execute_stage.h"
+
 
 #include "common/io/io.h"
 #include "common/log/log.h"
@@ -33,6 +37,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
 #include "sql/operator/update_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/update_stmt.h"
@@ -46,7 +51,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 #include "storage/clog/clog.h"
-
+#include "util/comparator.h"
+#include "util/util.h"
 using namespace common;
 
 //RC create_selection_executor(
@@ -393,16 +399,205 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   return oper;
 }
 
+
+RC ExecuteStage::normal_select_handler(SelectStmt *select_stmt, Tuple *&tuple, ProjectOperator &project_oper) {
+
+  RC rc;
+
+  if ((rc = project_oper.next()) == RC::SUCCESS) {
+    tuple = project_oper.current_tuple();
+    if (nullptr == tuple) {
+      rc = RC::INTERNAL;
+      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+    }
+  } else if (rc == RC::RECORD_EOF) {
+    project_oper.close();
+  } else {
+    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+    project_oper.close();
+  }
+
+  return rc;
+}
+
+
+RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper) {
+
+  RC rc;
+
+  auto aggregation_ops = select_stmt->aggregation_ops();  
+
+  for (size_t i = 0; i < values.size(); ++i) {
+    if (aggregation_ops[i] == COUNT_OP) {
+      values[i].type = AttrType::INTS;
+      values[i].data = new int;
+      *static_cast<int*>(values[i].data) = 0;
+
+    } else if (aggregation_ops[i] == AVG_OP){
+      values[i].type = AttrType::FLOATS;
+      values[i].data = new float;
+      *static_cast<float*>(values[i].data) = 0;
+
+    } else {
+      size_t n = select_stmt->query_fields().size();
+      if (i >= select_stmt->query_fields().size()) {
+        LOG_ERROR("aggregation: field count doesn't match the op count");
+        return RC::MISMATCH;
+      }
+      switch (select_stmt->query_fields()[n-i-1].attr_type()) {
+        case AttrType::FLOATS: {
+          values[i].type = AttrType::FLOATS;
+          values[i].data = new float; 
+          if (aggregation_ops[i] == MAX_OP) {
+            *static_cast<float*>(values[i].data) = std::numeric_limits<float>::min();
+          } else if (aggregation_ops[i] == MIN_OP) {
+            *static_cast<float*>(values[i].data) = std::numeric_limits<float>::max();
+          } else {
+            *static_cast<float*>(values[i].data) = 0;
+          }
+        }
+        break;
+        case AttrType::INTS: {
+          values[i].type = AttrType::INTS;
+          values[i].data = new int; 
+          if (aggregation_ops[i] == MAX_OP) {
+            *static_cast<int*>(values[i].data) = std::numeric_limits<int>::min();
+          } else if (aggregation_ops[i] == MIN_OP) {
+            *static_cast<int*>(values[i].data) = std::numeric_limits<int>::max();
+          } else {
+            *static_cast<int*>(values[i].data) = 0;
+          }
+        }
+        break;
+        // case AttrType::DATES:  ; // TODO
+        // case AttrType::CHARS:  ; // TODO
+        case AttrType::CHARS: {
+          values[i].type = AttrType::CHARS;
+          values[i].data = nullptr;
+        } 
+        break;
+        default: {
+          LOG_WARN("undefined value type");
+          return RC::GENERIC_ERROR;
+        }
+      }
+    }
+  }
+
+  int cnt = 0;
+
+  while ((rc = project_oper.next()) == RC::SUCCESS) {
+    // get current record
+    // write to response
+    Tuple * tuple = project_oper.current_tuple();
+    if (nullptr == tuple) {
+      rc = RC::INTERNAL;
+      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+      break;
+    }
+
+    cnt++;
+
+    for (int i = 0; i < aggregation_ops.size(); ++i) {
+      TupleCell cell;
+
+      size_t n = select_stmt->query_fields().size();
+      if (tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
+        LOG_WARN("cannot get the cell value");
+        break;
+      }
+
+      AggregationOp aggregation_op = aggregation_ops[i];
+      switch (aggregation_op) {
+        case COUNT_OP: {
+          *static_cast<int *>(values[i].data) += 1;
+        } break;
+
+        case AVG_OP: {
+          if (cell.attr_type() == AttrType::INTS) {
+            *static_cast<float*>(values[i].data) += *reinterpret_cast<const int*>(cell.data());
+          } else if (cell.attr_type() == AttrType::FLOATS) {
+            *static_cast<float*>(values[i].data) += *reinterpret_cast<const float*>(cell.data());
+          } else {
+            LOG_WARN("unsupported attr type");
+            return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+          }
+        } break;
+
+        case MAX_OP: {
+          if (cell.attr_type() == AttrType::INTS) {
+            if (compare_int(values[i].data, (void *)cell.data()) < 0) {
+              *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+            }
+          } else if (cell.attr_type() == AttrType::FLOATS) {
+            if (compare_float(values[i].data, (void *)cell.data()) < 0) {
+              *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+            }
+          } else if (cell.attr_type() == AttrType::CHARS) {
+            if (values[i].data == nullptr) {
+              values[i].data = strdup(cell.data());
+            } else if (compare_string(values[i].data, strlen((const char*)(values[i].data)), (void*)cell.data(), strlen((cell.data()))) < 0) {
+              // TODO: memory leak
+              values[i].data = strdup(cell.data());
+            }
+          }
+        } break;
+        
+        case MIN_OP: {
+          if (cell.attr_type() == AttrType::INTS) {
+            if (compare_int(values[i].data, (void *)cell.data()) > 0) {
+              *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+            }
+          } else if (cell.attr_type() == AttrType::FLOATS) {
+            if (compare_float(values[i].data, (void *)cell.data()) > 0) {
+              *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+            }
+          } else if (cell.attr_type() == AttrType::CHARS) {
+            if (values[i].data == nullptr) {
+              values[i].data = strdup(cell.data());
+            } else if (compare_string(values[i].data, strlen((const char*)(values[i].data)), (void*)cell.data(), strlen((cell.data()))) > 0) {
+              values[i].data = strdup(cell.data());
+            }
+          }
+
+        } break;
+        default: {
+          LOG_WARN("unsupported aggregation op");
+          return RC::GENERIC_ERROR;
+        }
+      }
+    }
+  }
+
+  if (rc != RC::RECORD_EOF) {
+    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+    project_oper.close();
+  } else {
+    rc = project_oper.close();
+  }
+
+  for (int i = 0; i < values.size(); ++i) {
+    if (aggregation_ops[i] == AVG_OP) {
+        if (values[i].type == AttrType::INTS) {
+          *static_cast<float*>(values[i].data) /= cnt;
+        } else if (values[i].type == AttrType::FLOATS) {
+          *static_cast<float*>(values[i].data) /= cnt;
+        } else {
+          LOG_WARN("unsupported attr type");
+          return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+        }
+    }
+  }
+
+
+  return rc;
+}
+
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 {
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
   SessionEvent *session_event = sql_event->session_event();
   RC rc = RC::SUCCESS;
-  // if (select_stmt->tables().size() != 1) {
-  //   LOG_WARN("select more than 1 tables is not supported");
-  //   rc = RC::UNIMPLENMENT;
-  //   return rc;
-  // }
 
   // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
   // if (nullptr == scan_oper) {
@@ -439,31 +634,54 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     return rc;
   }
 
+
   std::stringstream ss;
-  print_tuple_header(ss, project_oper);
-  while ((rc = project_oper.next()) == RC::SUCCESS) {
-    // get current record
-    // write to response
-    Tuple * tuple = project_oper.current_tuple();
-    if (nullptr == tuple) {
-      rc = RC::INTERNAL;
-      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
-      break;
+
+  if (!select_stmt->aggregation_ops().empty()) {
+    // aggregation 
+    std::vector<Value> values(select_stmt->aggregation_ops().size());
+    printf("select aggregation: op size %zu\n", values.size());
+    if (RC::SUCCESS != (rc = aggregation_select_handler(select_stmt, values, project_oper))) {
+      return rc;
     }
-    printf("do_select: get a tuple\n");
-    tuple_to_string(ss, *tuple);
+    
+    bool first_value = true;
+    for (int i = 0; i < values.size(); ++i) {
+      auto value = values[i];
+      if (first_value) {
+        first_value = false;
+      } else {
+        ss << " | ";
+      }
+      if (value.type == AttrType::INTS) {
+        ss << *static_cast<int *>(value.data);
+        delete static_cast<int *>(value.data);
+      } else if (value.type == AttrType::FLOATS) {
+        ss << double2string(*static_cast<float *>(value.data));
+        delete static_cast<float *>(value.data);
+      } else if (value.type == AttrType::CHARS) {
+        ss << (const char *)(value.data);
+        delete (const char *)value.data;
+      }
+    }
     ss << std::endl;
+
+  } else {
+    // normal select 
+
+    print_tuple_header(ss, project_oper);
+    Tuple *tuple;
+    while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
+      printf("do_select: get a tuple\n");
+      tuple_to_string(ss, *tuple);
+      ss << std::endl;
+    }
   }
 
-  if (rc != RC::RECORD_EOF) {
-    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
-    project_oper.close();
-  } else {
-    rc = project_oper.close();
-  }
   session_event->set_response(ss.str());
   return rc;
 }
+
 
 RC ExecuteStage::do_help(SQLStageEvent *sql_event)
 {

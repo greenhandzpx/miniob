@@ -24,7 +24,11 @@ typedef struct ParserContext {
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
-	char id[MAX_NUM];
+  char id[MAX_NUM];
+  
+  AggregationOp aggregation_ops[MAX_NUM];
+  size_t aggregation_num;
+  
 } ParserContext;
 
 //获取子串
@@ -113,6 +117,11 @@ ParserContext *get_context(yyscan_t scanner)
         GE
         NE
 		NULLABLE
+
+		COUNT
+		AVG
+		MAX
+		MIN
 		/* UNEQ */
 
 %union {
@@ -443,7 +452,43 @@ select_attr:
 			// selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_op);
 			// selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, AggregationOp::NO_AGGREGATE_OP);
 		}
+	| aggregate_attr aggregate_attr_list {
+			
+	}
     ;
+
+aggregate_attr:
+	aggregate_op LBRACE STAR RBRACE {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		printf("aggregation: get a attr *\n");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	} 
+	| aggregate_op LBRACE ID RBRACE {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		printf("aggregation: get a attr %s\n", $3);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	};
+
+aggregate_op: 
+	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }
+	| AVG   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = AVG_OP; }
+	| MAX   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MAX_OP; }
+	| MIN   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MIN_OP; };
+
+
+aggregate_attr_list:
+	/* empty */
+	|COMMA aggregate_attr aggregate_attr_list {
+
+	};
+
+
 attr_list:
     /* empty */
     | COMMA ID attr_list {
