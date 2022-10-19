@@ -371,8 +371,15 @@ value:
 	|DATE_STR {
 		$1 = substr($1,1,strlen($1)-2);
   		// CONTEXT->value_length += value_init_date(&CONTEXT->values[CONTEXT->value_length], $1);
-		if (value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1) == 0) {
+		// if (value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1) == 0) {
+		// 	CONTEXT->value_length -= 1;
+		// 	CONTEXT->ssql->flag = SCF_INVALID_DATE;
+		// 	return 0;
+		// }
+		if (value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1) == 0 ||
+  			value_init_date(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++], $1) == 0) {
 			CONTEXT->value_length -= 1;
+			CONTEXT->value_num[CONTEXT->tuple_num] -= 1;
 			CONTEXT->ssql->flag = SCF_INVALID_DATE;
 			return 0;
 		}
