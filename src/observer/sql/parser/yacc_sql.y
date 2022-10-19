@@ -92,6 +92,7 @@ ParserContext *get_context(yyscan_t scanner)
         INT_T
         STRING_T
         FLOAT_T
+		DATE_T
         HELP
         EXIT
         DOT //QUOTE
@@ -111,6 +112,7 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+		NULLABLE
 		/* UNEQ */
 
 %union {
@@ -130,6 +132,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
+%token <string> DATE_STR
 //非终结符
 
 %type <number> type;
@@ -251,7 +254,18 @@ attr_def:
     ID_get type LBRACE number RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $4, 0);
+			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
+			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type = $2;  
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
+			CONTEXT->value_length++;
+		}
+    |ID_get type LBRACE number RBRACE NULLABLE
+		{
+			AttrInfo attribute;
+			attr_info_init(&attribute, CONTEXT->id, $2, $4, 1);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -262,7 +276,18 @@ attr_def:
     |ID_get type
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
+			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
+			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type=$2;  
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length=4; // default attribute length
+			CONTEXT->value_length++;
+		}
+    |ID_get type NULLABLE
+		{
+			AttrInfo attribute;
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 1);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -278,6 +303,7 @@ type:
 	INT_T { $$=INTS; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
+	   | DATE_T {$$=DATES;}
        ;
 ID_get:
 	ID 
@@ -342,6 +368,15 @@ value:
 		value_init_string(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++], $1);
 		printf("yacc: tuple num %d, value num %d type %d\n", CONTEXT->tuple_num, CONTEXT->value_num[CONTEXT->tuple_num], CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]-1].type);
 		}
+	|DATE_STR {
+		$1 = substr($1,1,strlen($1)-2);
+  		// CONTEXT->value_length += value_init_date(&CONTEXT->values[CONTEXT->value_length], $1);
+		if (value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1) == 0) {
+			CONTEXT->value_length -= 1;
+			CONTEXT->ssql->flag = SCF_INVALID_DATE;
+			return 0;
+		}
+	}
     ;
     
 delete:		/*  delete 语句的语法解析树*/
@@ -385,7 +420,7 @@ select:				/*  select 语句的语法解析树*/
 	;
 
 select_attr:
-    STAR {  
+    STAR attr_list {  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);

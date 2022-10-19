@@ -63,6 +63,27 @@ void value_destroy(Value *value)
   free(value->data);
   value->data = nullptr;
 }
+bool check_date(int y, int m, int d)
+{
+    static int mon[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    bool leap = (y%400==0 || (y%100 && y%4==0));
+    return y > 0
+        && (m > 0)&&(m <= 12)
+        && (d > 0)&&(d <= ((m==2 && leap)?1:0) + mon[m]);
+}
+int value_init_date(Value* value, const char* v) {
+  int y,m,d;
+  sscanf(v, "%d-%d-%d", &y, &m, &d); //not check return value eq 3, lex guarantee
+  bool b = check_date(y,m,d);
+  if(!b) {
+    return 0;  // date invalid
+  }
+  value->type = DATES;
+  int dv = y*10000+m*100+d;
+  value->data = malloc(sizeof(dv)); //TODO:check malloc failure
+  memcpy(value->data, &dv, sizeof(dv));
+  return 1;
+}
 
 void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, RelAttr *right_attr, Value *right_value)
@@ -96,11 +117,12 @@ void condition_destroy(Condition *condition)
   }
 }
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length)
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_nullable)
 {
   attr_info->name = strdup(name);
   attr_info->type = type;
   attr_info->length = length;
+  attr_info->is_nullable = is_nullable;
 }
 void attr_info_destroy(AttrInfo *attr_info)
 {
@@ -422,6 +444,9 @@ RC parse(const char *st, Query *sqln)
 
   if (sqln->flag == SCF_ERROR)
     return SQL_SYNTAX;
-  else
+  else if (sqln->flag == SCF_INVALID_DATE)
+    return INVALID_DATE_IN_PARSE;
+  else {
     return SUCCESS;
+  }
 }
