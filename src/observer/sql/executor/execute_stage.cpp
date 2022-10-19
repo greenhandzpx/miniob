@@ -478,26 +478,32 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       switch (select_stmt->query_fields()[n-i-1].attr_type()) {
         case AttrType::FLOATS: {
           values[i].type = AttrType::FLOATS;
-          values[i].data = new float; 
-          if (aggregation_ops[i] == MAX_OP) {
-            *static_cast<float*>(values[i].data) = std::numeric_limits<float>::min();
-          } else if (aggregation_ops[i] == MIN_OP) {
-            *static_cast<float*>(values[i].data) = std::numeric_limits<float>::max();
-          } else {
-            *static_cast<float*>(values[i].data) = 0;
-          }
+          values[i].data = nullptr;
+          // values[i].data = new float; 
+          // if (aggregation_ops[i] == MAX_OP) {
+          //   *static_cast<float*>(values[i].data) = std::numeric_limits<float>::min();
+          // } else if (aggregation_ops[i] == MIN_OP) {
+          //   *static_cast<float*>(values[i].data) = std::numeric_limits<float>::max();
+          // } else {
+          //   *static_cast<float*>(values[i].data) = 0;
+          // }
         }
         break;
+        case AttrType::DATES: {
+          values[i].type = AttrType::DATES;
+          values[i].data = nullptr;
+        } break;
         case AttrType::INTS: {
           values[i].type = AttrType::INTS;
-          values[i].data = new int; 
-          if (aggregation_ops[i] == MAX_OP) {
-            *static_cast<int*>(values[i].data) = std::numeric_limits<int>::min();
-          } else if (aggregation_ops[i] == MIN_OP) {
-            *static_cast<int*>(values[i].data) = std::numeric_limits<int>::max();
-          } else {
-            *static_cast<int*>(values[i].data) = 0;
-          }
+          values[i].data = nullptr;
+          // values[i].data = new int; 
+          // if (aggregation_ops[i] == MAX_OP) {
+          //   *static_cast<int*>(values[i].data) = std::numeric_limits<int>::min();
+          // } else if (aggregation_ops[i] == MIN_OP) {
+          //   *static_cast<int*>(values[i].data) = std::numeric_limits<int>::max();
+          // } else {
+          //   *static_cast<int*>(values[i].data) = 0;
+          // }
         }
         break;
         // case AttrType::DATES:  ; // TODO
@@ -556,13 +562,23 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
         } break;
 
         case MAX_OP: {
-          if (cell.attr_type() == AttrType::INTS) {
-            if (compare_int(values[i].data, (void *)cell.data()) < 0) {
-              *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+          if (cell.attr_type() == AttrType::INTS || cell.attr_type() == AttrType::DATES) {
+            if (values[i].data == nullptr) {
+              // first time
+              values[i].data = new int(*(int *)cell.data());
+            } else {
+              if (compare_int((void *)cell.data(), values[i].data) > 0) {
+                *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+              }
             }
           } else if (cell.attr_type() == AttrType::FLOATS) {
-            if (compare_float(values[i].data, (void *)cell.data()) < 0) {
-              *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+            if (values[i].data == nullptr) {
+              // first time
+              values[i].data = new float(*(float *)cell.data());
+            } else {
+              if (compare_float((void *)cell.data(), values[i].data) > 0) {
+                *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+              }
             }
           } else if (cell.attr_type() == AttrType::CHARS) {
             if (values[i].data == nullptr) {
@@ -575,13 +591,23 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
         } break;
         
         case MIN_OP: {
-          if (cell.attr_type() == AttrType::INTS) {
-            if (compare_int(values[i].data, (void *)cell.data()) > 0) {
-              *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+          if (cell.attr_type() == AttrType::INTS || cell.attr_type() == AttrType::DATES) {
+            if (values[i].data == nullptr) {
+              // first time
+              values[i].data = new int(*(int *)cell.data());
+            } else {
+              if (compare_int(values[i].data, (void *)cell.data()) > 0) {
+                *static_cast<int*>(values[i].data) = *reinterpret_cast<const int *>(cell.data());
+              }
             }
           } else if (cell.attr_type() == AttrType::FLOATS) {
-            if (compare_float(values[i].data, (void *)cell.data()) > 0) {
-              *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+            if (values[i].data == nullptr) {
+              // first time
+              values[i].data = new float(*(float *)cell.data());
+            } else {
+              if (compare_float(values[i].data, (void *)cell.data()) > 0) {
+                *static_cast<float*>(values[i].data) = *reinterpret_cast<const float *>(cell.data());
+              }
             }
           } else if (cell.attr_type() == AttrType::CHARS) {
             if (values[i].data == nullptr) {
@@ -691,12 +717,21 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       if (value.type == AttrType::INTS) {
         ss << *static_cast<int *>(value.data);
         delete static_cast<int *>(value.data);
+
       } else if (value.type == AttrType::FLOATS) {
         ss << double2string(*static_cast<float *>(value.data));
         delete static_cast<float *>(value.data);
+
       } else if (value.type == AttrType::CHARS) {
         ss << (const char *)(value.data);
         delete (const char *)value.data;
+
+      } else if (value.type == AttrType::DATES) {
+        int value_int = *(int*)value.data;
+        char buf[16] = {0};
+        snprintf(buf,sizeof(buf),"%04d-%02d-%02d",value_int/10000, (value_int%10000)/100,value_int%100); // 注意这里月份和天数，不足两位时需要填充0
+        ss << buf;
+
       }
     }
     ss << std::endl;
