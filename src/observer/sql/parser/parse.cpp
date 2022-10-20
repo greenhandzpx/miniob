@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
 
 RC parse(char *st, Query *sqln);
 
@@ -85,9 +86,11 @@ int value_init_date(Value* value, const char* v) {
   return 1;
 }
 
-void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, RelAttr *right_attr, Value *right_value)
+void condition_init(Condition *condition, int is_comp, int is_in, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
+    int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select)
 {
+  condition->is_comp = is_comp;
+  condition->is_in = is_in;
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
   if (left_is_attr) {
@@ -99,6 +102,8 @@ void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr
   condition->right_is_attr = right_is_attr;
   if (right_is_attr) {
     condition->right_attr = *right_attr;
+  } else if (right_is_sub_query) {
+    condition->right_select = right_select;
   } else {
     condition->right_value = *right_value;
   }

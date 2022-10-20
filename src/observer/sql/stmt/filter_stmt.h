@@ -49,6 +49,11 @@ public:
     return comp_;
   }
 
+  void set_type(bool is_comp, bool is_in) {
+    is_comp_ = is_comp;
+    is_in_ = is_in;
+  }
+
   void set_left(Expression *expr)
   {
     left_ = expr;
@@ -67,6 +72,8 @@ public:
   }
 
 private:
+  bool is_comp_ = true;
+  bool is_in_ = false;
   CompOp comp_ = NO_OP;
   Expression *left_ = nullptr;
   Expression *right_ = nullptr;

@@ -84,6 +84,9 @@ QUOTE            [\'\"]
 [Ii][Nn][Nn][Ee][Rr]                                 RETURN_TOKEN(INNER);
 [Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);
 
+[Ii][Nn]                                             RETURN_TOKEN(IN);
+[Nn][Oo][Tt]                                         RETURN_TOKEN(NOT);
+
 
 
 {ID}                                                 yylval->string=strdup(yytext); RETURN_TOKEN(ID);

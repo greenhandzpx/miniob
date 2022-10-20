@@ -64,20 +64,29 @@ typedef struct _Value {
   void *data;     // value
 } Value;
 
+struct Selects;
+
 typedef struct _Condition {
   int left_is_attr;    // TRUE if left-hand side is an attribute
                        // 1时，操作符左边是属性名，0时，是属性值
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
+
+  int is_comp;         // is comparison condition
+  int is_in;           // is in condition
+
   CompOp comp;         // comparison operator
+
+  int right_is_sub_query;
   int right_is_attr;   // TRUE if right-hand side is an attribute
                        // 1时，操作符右边是属性名，0时，是属性值
   RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value right_value;   // right-hand side value if right_is_attr = FALSE
+  struct Selects *right_select; // right-hand side sub query(i.e. select query)
 } Condition;
 
 // struct of select
-typedef struct {
+typedef struct Selects {
   size_t attr_num;                // Length of attrs in Select clause
   RelAttr attributes[MAX_NUM];    // attrs in Select clause
   size_t relation_num;            // Length of relations in Fro clause
@@ -212,8 +221,8 @@ void value_init_string(Value *value, const char *v);
 int value_init_date(Value *value, const char *v);
 void value_destroy(Value *value);
 
-void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, RelAttr *right_attr, Value *right_value);
+void condition_init(Condition *condition, int is_comp, int is_in, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
+    int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select);
 void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_nullable);

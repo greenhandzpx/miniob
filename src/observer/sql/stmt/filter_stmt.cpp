@@ -15,7 +15,13 @@ See the Mulan PSL v2 for more details. */
 #include "rc.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
+#include "sql/operator/predicate_operator.h"
+#include "sql/operator/project_operator.h"
+#include "sql/operator/table_scan_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
+#include "sql/stmt/select_stmt.h"
+#include "sql/executor/execute_stage.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
 
@@ -105,6 +111,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
   }
 
   if (condition.right_is_attr) {
+
     Table *table = nullptr;
     const FieldMeta *field = nullptr;
     rc = get_table_and_field(db, default_table, tables, condition.right_attr, table, field);  
@@ -114,7 +121,53 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
       return rc;
     }
     right = new FieldExpr(table, field);
+
+  } else if (condition.right_is_sub_query) {  
+
+    assert(condition.right_select != nullptr);
+    Stmt *stmt;
+    if ((rc = SelectStmt::create(db, *condition.right_select, stmt)) != RC::SUCCESS) {
+      return rc;
+    }
+
+    SelectStmt *select_stmt = reinterpret_cast<SelectStmt*>(stmt);
+
+    PredicateOperator pred_oper(select_stmt->filter_stmt());
+
+    std::vector<Operator *> scan_opers(select_stmt->tables().size());
+    for (int i = scan_opers.size()-1; i >= 0; --i) {
+      // scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+      if (nullptr == scan_opers[i]) {
+        scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+      }
+      printf("%d scan op table %s\n", i, select_stmt->tables()[i]->name());
+      pred_oper.add_child(scan_opers[i]);
+    }
+
+    // TODO memory leak (scan_opers)
+
+    ProjectOperator project_oper;
+    project_oper.add_child(&pred_oper);
+    bool is_single_table = select_stmt->tables().size() == 1;
+    // for (int i = select_stmt->query_fields().size()-1; i >= 0; --i) {
+    //   project_oper.add_projection(select_stmt->query_fields()[i].table(), select_stmt->query_fields()[i].meta(), is_single_table);
+    // }
+    for (const Field &field : select_stmt->query_fields()) {
+      project_oper.add_projection(field.table(), field.meta(), is_single_table);
+    }
+    rc = project_oper.open();
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to open operator");
+      return rc;
+    }
+
+    std::vector<Value> values;
+    // Value value;
+    ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
+    right = new ValueExpr(value);
+
   } else {
+
     right = new ValueExpr(condition.right_value);
   }
 
