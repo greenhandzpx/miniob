@@ -569,6 +569,10 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const int*>(cell.data());
           } else if (cell.attr_type() == AttrType::FLOATS) {
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const float*>(cell.data());
+          } else if (cell.attr_type() == AttrType::CHARS) {
+            float tmp;
+            string2float(cell.data(), &tmp);
+            *static_cast<float*>(values[i].data) += tmp;
           } else {
             LOG_WARN("unsupported attr type");
             return RC::SCHEMA_FIELD_NAME_ILLEGAL;
