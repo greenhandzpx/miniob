@@ -245,7 +245,7 @@ RC DiskBufferPool::close_file()
     return RC::IOERR_CLOSE;
   }
   LOG_INFO("Successfully close file %d:%s.", file_desc_, file_name_.c_str());
-  file_desc_ = -1;
+  // file_desc_ = -1;
 
   bp_manager_.close_file(file_name_.c_str());
   return RC::SUCCESS;
@@ -670,12 +670,15 @@ RC BufferPoolManager::close_file(const char *_file_name)
     LOG_WARN("file has not opened: %s", _file_name);
     return RC::INTERNAL;
   }
-
   int fd = iter->second->file_desc();
   fd_buffer_pools_.erase(fd);
 
+  printf("bpm: close file fd %d, file name %s\n", fd, _file_name);
   DiskBufferPool *bp = iter->second;
   buffer_pools_.erase(iter);
+
+  bp->set_file_desc(-1);
+
   delete bp;
   return RC::SUCCESS;
 }
