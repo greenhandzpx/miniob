@@ -179,8 +179,15 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   }
 
   std::vector<AggregationOp> aggregation_ops(select_sql.aggregation_num);
+  size_t n = query_fields.size();
   for (int i = 0; i < select_sql.aggregation_num; ++i) {
     aggregation_ops[i] = select_sql.aggregation_ops[i];
+    if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP) {
+      if (query_fields[n-i-1].attr_type() == AttrType::CHARS || 
+          query_fields[n-i-1].attr_type() == AttrType::DATES) {
+        return RC::GENERIC_ERROR;
+      } 
+    }
   }
 
   // everything alright
