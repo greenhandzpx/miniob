@@ -252,6 +252,9 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
       case AVG_OP: {
         os << "AVG(";
       } break;
+      case SUM_OP: {
+        os << "SUM(";
+      } break;
       case MAX_OP: {
         os << "MAX(";
       } break;
@@ -474,7 +477,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       values[i].data = new int;
       *static_cast<int*>(values[i].data) = 0;
 
-    } else if (aggregation_ops[i] == AVG_OP){
+    } else if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP){
       values[i].type = AttrType::FLOATS;
       values[i].data = new float;
       *static_cast<float*>(values[i].data) = 0;
@@ -560,6 +563,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
           *static_cast<int *>(values[i].data) += 1;
         } break;
 
+        case SUM_OP:
         case AVG_OP: {
           if (cell.attr_type() == AttrType::INTS) {
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const int*>(cell.data());

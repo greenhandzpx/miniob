@@ -46,6 +46,7 @@ typedef enum {
   AVG_OP,
   MAX_OP,
   MIN_OP,
+  SUM_OP,
 } AggregationOp;
 
 //属性值类型

@@ -122,6 +122,7 @@ ParserContext *get_context(yyscan_t scanner)
 		AVG
 		MAX
 		MIN
+		SUM
 		/* UNEQ */
 		INNER
 		JOIN
@@ -496,7 +497,8 @@ aggregate_op:
 	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }
 	| AVG   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = AVG_OP; }
 	| MAX   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MAX_OP; }
-	| MIN   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MIN_OP; };
+	| MIN   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MIN_OP; }
+	| SUM   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = SUM_OP; };
 
 
 aggregate_attr_list:
