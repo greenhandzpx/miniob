@@ -159,6 +159,10 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     case LIKE_OP: {
       filter_result = left_cell.fuzzy_query_compare(right_cell);
     } break;
+
+    case NOT_LIKE_OP: {
+      filter_result = !left_cell.fuzzy_query_compare(right_cell);
+    } break;
     // *****************************like*************************************
     default: {
       LOG_WARN("invalid compare type: %d", comp);

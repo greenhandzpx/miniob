@@ -325,7 +325,7 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     }
     // **************************like***********************************
     // puzzy query should not use index to search
-    if (filter_unit->comp() == LIKE_OP) {
+    if (filter_unit->comp() == LIKE_OP || filter_unit->comp() == NOT_LIKE_OP) {
       continue;
     }
     // **************************like***************************

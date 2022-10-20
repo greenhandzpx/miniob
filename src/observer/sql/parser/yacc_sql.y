@@ -127,6 +127,7 @@ ParserContext *get_context(yyscan_t scanner)
 		JOIN
 
 		LIKE
+		NOT
 
 %union {
   struct _Attr *attr;
@@ -706,7 +707,7 @@ comOp:
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
 	| LIKE { CONTEXT->comp = LIKE_OP; }
-	|
+	| NOT LIKE { CONTEXT->comp = NOT_LIKE_OP; }
     ;
 
 load_data:

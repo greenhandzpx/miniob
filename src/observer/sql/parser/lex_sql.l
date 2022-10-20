@@ -85,6 +85,7 @@ QUOTE            [\'\"]
 [Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);
 
 [Ll][Ii][Kk][Ee]                                     RETURN_TOKEN(LIKE); 
+[Nn][Oo][Tt]                                         RETURN_TOKEN(NOT);
 
 
 
