@@ -31,6 +31,8 @@ std::string double2string(double v)
   return std::string(buf, len);
 }
 
+
+// ***************************typecast*****************************************
 bool is_num(char c) {
    return c - '0' >= 0 && c - '0' <= 9;
 }
@@ -123,3 +125,5 @@ bool string2float(std::string str, float* num) {
       return true;
    }
 }
+
+// ***************************typecast*****************************************
