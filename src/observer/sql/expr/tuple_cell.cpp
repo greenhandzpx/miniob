@@ -59,13 +59,42 @@ int TupleCell::compare(const TupleCell &other) const
       LOG_WARN("unsupported type: %d", this->attr_type_);
     }
     }
-  } else if (this->attr_type_ == INTS && other.attr_type_ == FLOATS) {
+  } 
+  
+  // *****************************typecast************************************** 
+  else if (this->attr_type_ == INTS && other.attr_type_ == FLOATS) {
     float this_data = *(int *)data_;
     return compare_float(&this_data, other.data_);
   } else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) {
     float other_data = *(int *)other.data_;
     return compare_float(data_, &other_data);
+  } else if (this->attr_type_ == INTS && other.attr_type_ == CHARS) {
+    float num = 0;
+    string2float(other.data_, &num);
+    int int_data = *((int*)this->data_);
+    float f = (float)int_data;
+    return compare_float(&f, &num);
+
+  } else if (this->attr_type_ == CHARS && other.attr_type_ == INTS) {
+    float num = 0;
+    string2float(this->data_, &num);
+    int int_data = *((int*)other.data_);
+    float f = (float)int_data;
+    return compare_float(&num, &f);
+
+  } else if (this->attr_type_ == FLOATS && other.attr_type_ == CHARS) {
+    float num = 0;
+    string2float(other.data_, &num);
+    return compare_float(this->data_, &num);
+  } else if (this->attr_type_ == CHARS && other.attr_type_ == FLOATS) {
+    float num = 0;
+    string2float(this->data_, &num);
+    return compare_float(&num, other.data_);
   }
+
+  // ******************************typecast***************************************
+
+  
   LOG_WARN("not supported");
   return -1; // TODO return rc?
 }

@@ -80,6 +80,7 @@ QUOTE            [\'\"]
 [Aa][Vv][Gg]                                         RETURN_TOKEN(AVG);
 [Mm][Aa][Xx]                                         RETURN_TOKEN(MAX);
 [Mm][Ii][Nn]                                         RETURN_TOKEN(MIN);
+[Ss][Uu][Mm]                                         RETURN_TOKEN(SUM);
 
 [Ii][Nn][Nn][Ee][Rr]                                 RETURN_TOKEN(INNER);
 [Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);

@@ -182,7 +182,6 @@ RC PredicateOperator::close()
   for (auto child: children_) {
     child->close();
   }
-  // children_[0]->close();
   return RC::SUCCESS;
 }
 

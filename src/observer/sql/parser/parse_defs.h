@@ -46,6 +46,7 @@ typedef enum {
   AVG_OP,
   MAX_OP,
   MIN_OP,
+  SUM_OP,
 } AggregationOp;
 
 //属性值类型
@@ -144,6 +145,11 @@ typedef struct {
   char *relation_name;  // Relation name
 } DropTable;
 
+// struct of show index
+typedef struct {
+  char *relation_name;  // Relation name
+} ShowIndex;
+
 // struct of create_index
 typedef struct {
   char *index_name;      // Index name
@@ -176,6 +182,7 @@ union Queries {
   DropIndex drop_index;
   DescTable desc_table;
   LoadData load_data;
+  ShowIndex show_index;
   char *errors;
 };
 
@@ -192,6 +199,7 @@ enum SqlCommandFlag {
   SCF_DROP_INDEX,
   SCF_SYNC,
   SCF_SHOW_TABLES,
+  SCF_SHOW_INDEX,
   SCF_DESC_TABLE,
   SCF_BEGIN,
   SCF_COMMIT,
@@ -253,6 +261,9 @@ void create_table_destroy(CreateTable *create_table);
 
 void drop_table_init(DropTable *drop_table, const char *relation_name);
 void drop_table_destroy(DropTable *drop_table);
+
+void show_index_init(ShowIndex *show_index, const char *relation_name);
+void show_index_destroy(ShowIndex *show_index);
 
 void create_index_init(
     CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name);

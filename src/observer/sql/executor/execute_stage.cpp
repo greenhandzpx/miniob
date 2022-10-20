@@ -177,6 +177,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     case SCF_DESC_TABLE: {
       do_desc_table(sql_event);
     } break;
+    case SCF_SHOW_INDEX: {
+      do_show_index(sql_event);
+    } break;
 
     case SCF_DROP_TABLE:
     case SCF_DROP_INDEX:
@@ -248,6 +251,9 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
       } break;
       case AVG_OP: {
         os << "AVG(";
+      } break;
+      case SUM_OP: {
+        os << "SUM(";
       } break;
       case MAX_OP: {
         os << "MAX(";
@@ -326,6 +332,13 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 
     Expression *left = filter_unit->left();
     Expression *right = filter_unit->right();
+
+    // **************************typecast***********************************
+    if (left->type() == ExprType::VALUE && right->type() == ExprType::VALUE) {
+      continue;
+    }
+    // **************************typecast***************************
+    
     if (left->type() == ExprType::FIELD && right->type() == ExprType::VALUE) {
     } else if (left->type() == ExprType::VALUE && right->type() == ExprType::FIELD) {
       std::swap(left, right);
@@ -464,7 +477,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       values[i].data = new int;
       *static_cast<int*>(values[i].data) = 0;
 
-    } else if (aggregation_ops[i] == AVG_OP){
+    } else if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP){
       values[i].type = AttrType::FLOATS;
       values[i].data = new float;
       *static_cast<float*>(values[i].data) = 0;
@@ -550,11 +563,16 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
           *static_cast<int *>(values[i].data) += 1;
         } break;
 
+        case SUM_OP:
         case AVG_OP: {
           if (cell.attr_type() == AttrType::INTS) {
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const int*>(cell.data());
           } else if (cell.attr_type() == AttrType::FLOATS) {
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const float*>(cell.data());
+          } else if (cell.attr_type() == AttrType::CHARS) {
+            float tmp;
+            string2float(cell.data(), &tmp);
+            *static_cast<float*>(values[i].data) += tmp;
           } else {
             LOG_WARN("unsupported attr type");
             return RC::SCHEMA_FIELD_NAME_ILLEGAL;
@@ -813,6 +831,33 @@ RC ExecuteStage::do_show_tables(SQLStageEvent *sql_event)
     }
     session_event->set_response(ss.str().c_str());
   }
+  return RC::SUCCESS;
+}
+
+RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
+  SessionEvent *session_event = sql_event->session_event();
+  Db *db = session_event->session()->get_current_db();
+  Table *table = db->find_table(sql_event->query()->sstr.show_index.relation_name);
+  if (nullptr == table) {
+    session_event->set_response("FAILURE\n");
+    return RC::INTERNAL;
+  }
+  std::vector<Index *> indexes = table->all_indexes();
+  std::stringstream ss;
+  auto size = indexes.size();
+  ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
+  for (const auto & index : indexes) {
+    ss << table->name() << " | ";
+    // 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
+    ss << 1 << " | ";
+    if (nullptr == index) {
+      session_event->set_response("FAILURE\n");
+      return RC::INTERNAL;
+    }
+    // 此处暂无多列索引故无脑输入1。支持多列索引后再改为该列在多列索引中的位置。
+    ss << index->index_meta().name() << " | " << 1 << " | " << index->index_meta().field() << std::endl;
+  }
+  session_event->set_response(ss.str().c_str());
   return RC::SUCCESS;
 }
 

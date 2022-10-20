@@ -17,3 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 
 std::string double2string(double v);
+
+// ***************************typecast*****************************************
+bool string2float(std::string str, float* num);
+// ***************************typecast*****************************************

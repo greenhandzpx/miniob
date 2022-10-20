@@ -122,6 +122,7 @@ ParserContext *get_context(yyscan_t scanner)
 		AVG
 		MAX
 		MIN
+		SUM
 		/* UNEQ */
 		INNER
 		JOIN
@@ -169,6 +170,7 @@ command:
 	| create_table
 	| drop_table
 	| show_tables
+	| show_index
 	| desc_table
 	| create_index	
 	| drop_index
@@ -226,6 +228,13 @@ show_tables:
       CONTEXT->ssql->flag = SCF_SHOW_TABLES;
     }
     ;
+
+show_index:
+	SHOW INDEX FROM ID SEMICOLON {
+		CONTEXT->ssql->flag = SCF_SHOW_INDEX;
+		show_index_init(&CONTEXT->ssql->sstr.show_index, $4);
+	}
+	;
 
 desc_table:
     DESC ID SEMICOLON {
@@ -471,10 +480,23 @@ select_attr:
 	| aggregate_attr aggregate_attr_list {
 			
 	}
+	/* the followings are error cases */
+	/* | STAR aggregate_attr_list {
+
+	}
+	| ID aggregate_attr_list {
+
+	}
+	| ID DOT ID aggregate_attr_list {
+
+	}
+	| ID DOT STAR aggregate_attr_list {
+
+	}	 */
     ;
 
 aggregate_attr:
-	aggregate_op LBRACE STAR RBRACE {
+	/* aggregate_op LBRACE STAR RBRACE {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL, "*");
 		printf("aggregation: get a attr *\n");
@@ -482,10 +504,30 @@ aggregate_attr:
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
 	} 
-	| aggregate_op LBRACE ID RBRACE {
+	|  */
+	aggregate_op LBRACE aggregation_field_attr RBRACE {
+		// RelAttr attr;
+		// relation_attr_init(&attr, NULL, $3);
+		// printf("aggregation: get a attr %s\n", $3);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		// selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		// CONTEXT->aggregation_num++;	
+	};
+
+aggregation_field_attr:
+	/* empty */
+	| STAR attr_list {
 		RelAttr attr;
-		relation_attr_init(&attr, NULL, $3);
-		printf("aggregation: get a attr %s\n", $3);
+		relation_attr_init(&attr, NULL, "*");
+		printf("aggregation: get a attr *\n");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	}
+	| ID attr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $1);
+		printf("aggregation: get a attr %s\n", $1);
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
@@ -495,13 +537,35 @@ aggregate_op:
 	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }
 	| AVG   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = AVG_OP; }
 	| MAX   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MAX_OP; }
-	| MIN   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MIN_OP; };
+	| MIN   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = MIN_OP; }
+	| SUM   { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = SUM_OP; };
 
 
 aggregate_attr_list:
 	/* empty */
 	|COMMA aggregate_attr aggregate_attr_list {
 
+	}
+	/* the followings are error cases */
+	| COMMA STAR aggregate_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID aggregate_attr_list{
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT ID  aggregate_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT STAR aggregate_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	};
 
 
@@ -525,6 +589,10 @@ attr_list:
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	} 
+	/* the followings are error case */
+	| COMMA aggregate_attr attr_list {
+
 	}
   	;
 

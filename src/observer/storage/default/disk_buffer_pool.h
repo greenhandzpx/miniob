@@ -215,6 +215,9 @@ public:
   DiskBufferPool(BufferPoolManager &bp_manager, BPFrameManager &frame_manager);
   ~DiskBufferPool();
 
+  void set_file_desc(int fd) {
+    file_desc_ = fd;
+  }
   /**
    * 创建一个名称为指定文件名的分页文件
    */
