@@ -31,6 +31,11 @@ public:
 
   virtual ~PredicateOperator() = default;
 
+  RC set_parent_tuple(Tuple *parent_tuple) {
+    parent_tuple_ = parent_tuple;
+    return RC::SUCCESS;
+  }
+
   RC open() override;
   RC next() override;
   RC close() override;
@@ -46,4 +51,6 @@ private:
   FilterStmt *filter_stmt_ = nullptr;
   std::vector<Tuple *> tuple_stack_;
   CompositeTuple *current_tuple_ = nullptr;
+  // simple sub query
+  Tuple *parent_tuple_ = nullptr;
 };

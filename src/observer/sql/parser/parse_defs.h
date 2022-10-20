@@ -29,6 +29,15 @@ typedef struct {
   char *attribute_name;  // attribute name              属性名
 } RelAttr;
 
+
+typedef enum {
+  Comparison,  // select * from t where a > b;
+  Contain,     // select * from t where a in (select b from t2)
+  NotContain,
+  Exists,      // select * from t where exists (select * from t2 where t2.id > t.id)
+  NotExists,
+} FilterType;
+
 typedef enum {
   EQUAL_TO,     //"="     0
   LESS_EQUAL,   //"<="    1
@@ -73,9 +82,10 @@ typedef struct _Condition {
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
 
-  int is_comp;         // is comparison condition
-  int is_in;           // is in condition
+  // int is_comp;         // is comparison condition
+  // int is_in;           // is in condition
 
+  FilterType condition_type;
   CompOp comp;         // comparison operator
 
   int right_is_sub_query;
@@ -229,7 +239,7 @@ void value_init_string(Value *value, const char *v);
 int value_init_date(Value *value, const char *v);
 void value_destroy(Value *value);
 
-void condition_init(Condition *condition, int is_comp, int is_in, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
+void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select);
 void condition_destroy(Condition *condition);
 

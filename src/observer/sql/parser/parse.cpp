@@ -86,17 +86,19 @@ int value_init_date(Value* value, const char* v) {
   return 1;
 }
 
-void condition_init(Condition *condition, int is_comp, int is_in, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
+void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select)
 {
-  condition->is_comp = is_comp;
-  condition->is_in = is_in;
+  condition->condition_type = condition_type;
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
-  if (left_is_attr) {
-    condition->left_attr = *left_attr;
-  } else {
-    condition->left_value = *left_value;
+  if (condition_type != Exists && condition_type != NotExists) {
+    if (left_is_attr) {
+      condition->left_attr = *left_attr;
+    } else {
+      condition->left_value = *left_value;
+    }
+
   }
 
   condition->right_is_attr = right_is_attr;

@@ -313,7 +313,7 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
   }
 }
 
-IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
+IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
   if (filter_units.empty() ) {
@@ -694,7 +694,6 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     pred_oper.add_child(scan_opers[i]);
   }
 
-
   ProjectOperator project_oper;
   project_oper.add_child(&pred_oper);
 
@@ -716,8 +715,10 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   std::stringstream ss;
 
   if (!select_stmt->aggregation_ops().empty()) {
-    print_aggregation_header(ss, select_stmt);
+
     // aggregation 
+
+    print_aggregation_header(ss, select_stmt);
     std::vector<Value> values(select_stmt->aggregation_ops().size());
     printf("select aggregation: op size %zu\n", values.size());
     if (RC::SUCCESS != (rc = aggregation_select_handler(select_stmt, values, project_oper))) {
@@ -755,6 +756,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     ss << std::endl;
 
   } else {
+    
     // normal select 
 
     print_tuple_header(ss, project_oper);

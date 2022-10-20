@@ -49,9 +49,12 @@ public:
     return comp_;
   }
 
-  void set_type(bool is_comp, bool is_in) {
-    is_comp_ = is_comp;
-    is_in_ = is_in;
+  void set_type(FilterType filter_type) {
+    filter_type_ = filter_type;
+  }
+
+  FilterType get_type() const {
+    return filter_type_;
   }
 
   void set_left(Expression *expr)
@@ -72,11 +75,12 @@ public:
   }
 
 private:
-  bool is_comp_ = true;
-  bool is_in_ = false;
+  // bool is_comp_ = true;
+  // bool is_in_ = false;
   CompOp comp_ = NO_OP;
   Expression *left_ = nullptr;
   Expression *right_ = nullptr;
+  FilterType filter_type_;
 };
 
 class FilterStmt 

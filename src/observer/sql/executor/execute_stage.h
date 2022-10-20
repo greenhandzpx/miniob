@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/seda/stage.h"
 #include "sql/expr/tuple.h"
+#include "sql/operator/index_scan_operator.h"
 #include "sql/operator/project_operator.h"
 #include "sql/parser/parse.h"
 #include "rc.h"
@@ -58,6 +59,7 @@ protected:
   RC do_clog_sync(SQLStageEvent *sql_event);
 
 public:
+  static IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt);
   /**
     get a tuple at a time
   */

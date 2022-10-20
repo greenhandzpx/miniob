@@ -175,6 +175,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
   filter_unit->set_comp(comp);
   filter_unit->set_left(left);
   filter_unit->set_right(right);
+  filter_unit->set_type(condition.condition_type);
 
   // 检查两个类型是否能够比较
   return rc;

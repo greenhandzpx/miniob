@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <string.h>
+#include "sql/stmt/select_stmt.h"
 #include "storage/common/field.h"
 #include "sql/expr/tuple_cell.h"
 
@@ -24,6 +25,7 @@ enum class ExprType {
   NONE,
   FIELD,
   VALUE,
+  SUB_QUERY,
 };
 
 class Expression
@@ -100,4 +102,26 @@ public:
 
 private:
   TupleCell tuple_cell_;
+};
+
+
+class SubQueryExpr: public Expression
+{
+public:
+  SubQueryExpr(SelectStmt *select_stmt): select_stmt_(select_stmt) {}
+  ExprType type() const override
+  {
+    return ExprType::SUB_QUERY;
+  }
+
+  RC get_value(const Tuple &tuple, TupleCell & cell) const override {
+    return RC::UNIMPLENMENT;
+  }
+
+  void start_query(Tuple *parent_tuple, std::vector<Tuple*> &tuple_set);
+
+  // void add_parent_tuple(Tuple *parent_tuple);
+private:
+  SelectStmt *select_stmt_ = nullptr;
+  // Tuple *parent_tuple_ = nullptr;
 };
