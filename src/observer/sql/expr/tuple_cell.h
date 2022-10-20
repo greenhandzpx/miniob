@@ -39,6 +39,10 @@ public:
 
   int compare(const TupleCell &other) const;
 
+  // **********************************like*************************************************
+  bool fuzzy_query_compare(const TupleCell &other) const;
+  // **********************************like*************************************************
+
   const char *data() const
   {
     return data_;

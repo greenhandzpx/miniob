@@ -84,6 +84,9 @@ QUOTE            [\'\"]
 [Ii][Nn][Nn][Ee][Rr]                                 RETURN_TOKEN(INNER);
 [Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);
 
+[Ll][Ii][Kk][Ee]                                     RETURN_TOKEN(LIKE); 
+
+
 
 
 {ID}                                                 yylval->string=strdup(yytext); RETURN_TOKEN(ID);
@@ -99,7 +102,7 @@ QUOTE            [\'\"]
 ">"                                                  RETURN_TOKEN(GT);
 
 {QUOTE}([0-9]+)\-([0-9]+)\-([0-9]+){QUOTE} yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);  // 使用正则表达式过滤DATE。需要在yacc文件中增加 %token <string> DATE_STR
-{QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
+{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like
 
 .                                                    printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
