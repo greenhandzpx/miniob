@@ -31,6 +31,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 #include "storage/clog/clog.h"
 
+#include "util/util.h"
+
 Table::~Table()
 {
   if (record_handler_ != nullptr) {
@@ -708,12 +710,69 @@ public:
     }
 
     if (field->type() != value_->type) {
-      LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
+      // ******************************typecast*********************************
+      if (value_->type == AttrType::CHARS && field->type() == AttrType::INTS) {
+        float num = 0;
+        Value* v = const_cast<Value*>(value_);
+        std::string str = static_cast<char*>(v->data);
+        string2float(str, &num);
+        if (num - (float)((int)num) >= 0.5) num += 1;
+        v->type = AttrType::INTS;
+        *((int*)(v->data)) = (int)num;
+      } else if (value_->type == AttrType::CHARS && field->type() == AttrType::FLOATS) {
+        float num = 0;
+        Value* v = const_cast<Value*>(value_);
+        std::string str = static_cast<char*>(v->data);
+        string2float(str, &num);
+        v->type = AttrType::FLOATS;
+        *((float*)(v->data)) = num;
+      } else if (value_->type == AttrType::INTS && field->type() == AttrType::FLOATS) {
+        Value* v = const_cast<Value*>(value_);
+        int* num = static_cast<int*>(v->data);
+        float n = (float)*num;
+        float* fnum = static_cast<float*>(v->data);
+        *fnum = n;
+        v->type = AttrType::FLOATS;
+      } else if (value_->type == AttrType::INTS && field->type() == AttrType::CHARS) {
+        Value* v = const_cast<Value*>(value_);
+        int* num = static_cast<int*>(v->data);
+        char* str = static_cast<char*>(v->data);
+        
+        char* s = const_cast<char*>(std::to_string(*num).data());
+        for ( int i = 0; s[i] != '\0'; i++) {
+          str[i] = s[i];
+        }
+        v->type = CHARS;
+
+      } else if (value_->type == AttrType::FLOATS && field->type() == AttrType::INTS) {
+        Value* v = const_cast<Value*>(value_);
+        float* num = static_cast<float*>(v->data);
+        int n = (int)*num;
+        if (*num - (float)n >= 0.5) n += 1;
+        int* inum = static_cast<int*>(v->data);
+        *inum = n;
+        v->type = AttrType::INTS;
+
+      } else if (value_->type == AttrType::FLOATS && field->type() == AttrType::CHARS) {
+        Value* v = const_cast<Value*>(value_);
+        float* num = static_cast<float*>(v->data);
+        char* str = static_cast<char*>(v->data);
+
+        char* s = const_cast<char*>(double2string(*num).data());
+        for ( int i = 0; s[i] != '\0'; i++) {
+          str[i] = s[i];
+        }
+        v->type = CHARS;
+
+      // **********************************typecast******************************************
+      }  else {
+        LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta.name(),
           field->name(),
           field->type(),
           value_->type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
     }
 
     // delete old index 
