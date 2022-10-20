@@ -56,9 +56,11 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
   const size_t *value_num = inserts.value_num;
   const TableMeta &table_meta = table->table_meta();
   const int field_num = table_meta.field_num() - table_meta.sys_field_num();
-  if (field_num != value_num[0]) {
-    LOG_WARN("schema mismatch. value num=%d, field num in schema=%d", value_num, field_num);
-    return RC::SCHEMA_FIELD_MISSING;
+  for (int i = 0; i < inserts.tuple_num; ++i) {
+    if (field_num != value_num[i]) {
+      LOG_WARN("schema mismatch. value num=%d, field num in schema=%d", value_num, field_num);
+      return RC::SCHEMA_FIELD_MISSING;
+    }
   }
 
   // check fields type
