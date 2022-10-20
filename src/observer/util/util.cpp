@@ -182,9 +182,10 @@ bool is_like_pre(std::string s1, std::string s2)
 
    for (int i = 0; i < subs2.size(); i++) {
       std::string s3 = s1.substr(start);
-      start += KMP(subs2[i], s3);
+      int res = KMP(subs2[i], s3); 
+      if (res == -1) return false;
+      start += res;
       endn[i] = start;
-      if (start == -1) return false;
    }
 
    // if the start index of subs2[0] in s1 do not equal to 0 and the first char in s2 is not '%',
@@ -226,7 +227,7 @@ bool is_like_bhd(std::string s1, std::string s2) {
       i++;
       j--;
    }
-
+   
    return is_like_pre(s3, s4);
 }
 
