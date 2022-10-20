@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/stmt/select_stmt.h"
+#include "rc.h"
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
@@ -44,6 +45,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     return RC::INVALID_ARGUMENT;
   }
 
+  if (select_sql.attr_num == 0) {
+    return GENERIC_ERROR;
+  }
 
   // collect tables in `from` statement
   std::vector<Table *> tables;
@@ -64,6 +68,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     tables.push_back(table);
     table_map.insert(std::pair<std::string, Table*>(table_name, table));
   }
+
   
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
@@ -73,6 +78,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
 
       // select * from t1, t2
+
       if (select_sql.aggregation_num > 0) {
         // if this is an aggregation op
         // then it must be COUNT
@@ -145,6 +151,15 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 
       query_fields.push_back(Field(table, field_meta));
     }
+  }
+
+  if (select_sql.aggregation_num > 0 && select_sql.aggregation_num != query_fields.size()) {
+    /**
+      We will have one field corresponding to one aggregation function,
+      so the num of fields must be equal to the num of aggregation function
+      error case like: select avg(id1, id2) from t1;
+    */
+    return RC::GENERIC_ERROR;
   }
 
   LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), query_fields.size());

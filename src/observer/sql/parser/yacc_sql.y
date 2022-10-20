@@ -476,7 +476,7 @@ select_attr:
     ;
 
 aggregate_attr:
-	aggregate_op LBRACE STAR RBRACE {
+	/* aggregate_op LBRACE STAR RBRACE {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL, "*");
 		printf("aggregation: get a attr *\n");
@@ -484,10 +484,30 @@ aggregate_attr:
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
 	} 
-	| aggregate_op LBRACE ID RBRACE {
+	|  */
+	aggregate_op LBRACE aggregation_field_attr RBRACE {
+		// RelAttr attr;
+		// relation_attr_init(&attr, NULL, $3);
+		// printf("aggregation: get a attr %s\n", $3);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		// selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		// CONTEXT->aggregation_num++;	
+	};
+
+aggregation_field_attr:
+	/* empty */
+	| STAR attr_list {
 		RelAttr attr;
-		relation_attr_init(&attr, NULL, $3);
-		printf("aggregation: get a attr %s\n", $3);
+		relation_attr_init(&attr, NULL, "*");
+		printf("aggregation: get a attr *\n");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	}
+	| ID attr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $1);
+		printf("aggregation: get a attr %s\n", $1);
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
