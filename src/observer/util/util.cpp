@@ -134,9 +134,6 @@ bool string2float(std::string str, float* num) {
 
 // ********************************like*****************************************
 
-
-
-
 int KMP(std::string p, std::string s) {
    int n = s.size(), m = p.size();
    if(m == 0) return 0;  
@@ -156,35 +153,8 @@ int KMP(std::string p, std::string s) {
    return -1;
 }
 
-
-
-bool is_like(std::string s1, std::string s2) 
+bool is_like_pre(std::string s1, std::string s2) 
 {
-   if (s1.size() == 0 && s2.size() == 0) return true;
-   if (s1.size() != 0 && s2.size() == 0) return false;
-
-   int cnt_ = 0;
-   for (int i = 0; i < s2.size(); i++)
-      if (s2[i] == '_') cnt_++;
-
-   int cnto = 0;
-   for (int i = 0; i < s2.size(); i++)
-      if (s2[i] == '%') cnto ++;
-
-   // if all chars in s2 is '_' or '%'
-   if (cnt_ + cnto == s2.size()) {
-      if (cnto == s2.size()) return true;
-      else if (cnt_ == s2.size()) {
-         if (cnt_ == s1.size()) return true;
-         else return false;
-      } else {
-         if (cnt_ > s1.size()) return false;
-         else return true;
-      }
-   }
-   
-
-
    // first we use '%' to split the s2 into substring array, called subs2
    std::stringstream stream_data(s2);
    std::vector<std::string> subs2;
@@ -227,5 +197,69 @@ bool is_like(std::string s1, std::string s2)
    return true;
 }
 
+bool is_like_bhd(std::string s1, std::string s2) {
+   std::string s3(s1);
+   std::string s4(s2);
+
+   int i, j;
+
+   int len1 = s3.size();
+   i = 0;
+   j = len1 - 1;
+
+   while (i < j) {
+      char c = s3[i];
+      s3[i] = s3[j];
+      s3[j] = c;
+      i++;
+      j--;
+   }
+
+   int len2 = s4.size();
+   i = 0;
+   j = len2 - 1;
+
+   while (i < j) {
+      char c = s4[i];
+      s4[i] = s4[j];
+      s4[j] = c;
+      i++;
+      j--;
+   }
+
+   return is_like_pre(s3, s4);
+}
+
+
+
+bool is_like(std::string s1, std::string s2) 
+{
+   if (s1.size() == 0 && s2.size() == 0) return true;
+   if (s1.size() != 0 && s2.size() == 0) return false;
+
+   int cnt_ = 0;
+   for (int i = 0; i < s2.size(); i++)
+      if (s2[i] == '_') cnt_++;
+
+   int cnto = 0;
+   for (int i = 0; i < s2.size(); i++)
+      if (s2[i] == '%') cnto ++;
+
+   // if all chars in s2 is '_' or '%'
+   if (cnt_ + cnto == s2.size()) {
+      if (cnto == s2.size()) return true;
+      else if (cnt_ == s2.size()) {
+         if (cnt_ == s1.size()) return true;
+         else return false;
+      } else {
+         if (cnt_ > s1.size()) return false;
+         else return true;
+      }
+   }
+   
+
+
+   return is_like_pre(s1, s2) || is_like_bhd(s1, s2);
+}
 // ********************************like*****************************************
 
