@@ -28,6 +28,9 @@ typedef struct ParserContext {
   
   AggregationOp aggregation_ops[MAX_NUM];
   size_t aggregation_num;
+
+  Query *sub_query;
+  struct ParserContext *last_context;  // when encounting a sub query, the old context will be placed here(like a stack)
   
 } ParserContext;
 
@@ -769,7 +772,8 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->ssql->sstr.selection);
+		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		
 	}
 	| ID NOT IN sub_query {
@@ -777,34 +781,57 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->ssql->sstr.selection);
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
 	| ID DOT ID comOp sub_query {
 		RelAttr left_attr;
-		relation_attr_init(&left_attr, NULL, $1);
+		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->ssql->sstr.selection);
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| EXISTS sub_query {
 
 		Condition condition;
-		condition_init(&condition, Exists, CONTEXT->comp, 0, NULL, NULL, 0, 1, NULL, NULL, &CONTEXT->ssql->sstr.selection);
+		condition_init(&condition, Exists, CONTEXT->comp, 0, NULL, NULL, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
 	| NOT EXISTS sub_query {
 
 		Condition condition;
-		condition_init(&condition, NotExists, CONTEXT->comp, 0, NULL, NULL, 0, 1, NULL, NULL, &CONTEXT->ssql->sstr.selection);
+		condition_init(&condition, NotExists, CONTEXT->comp, 0, NULL, NULL, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
     ;
 
 sub_query:
-	LBRACE select_query RBRACE {
-
+	LBRACE N select_query RBRACE {
+		// TODO support complex sub query
+		ParserContext *old_context = CONTEXT->last_context;
+		old_context->sub_query = CONTEXT->ssql;
+		*CONTEXT = *old_context;
+		printf("sub query addr %p\n", old_context->sub_query);
+		printf("swap back old context\n");
 	};
+N: /* empty */ {
+	// create a new context
+	ParserContext *old_context = (ParserContext *)malloc(sizeof(ParserContext));
+	ParserContext tmp = *old_context;
+	*old_context = *CONTEXT;
+	*CONTEXT = tmp; 
+	memset(CONTEXT, 0, sizeof(*CONTEXT));
+	CONTEXT->ssql = (Query *)malloc(sizeof(Query));
+	printf("SWAP OUT sub query addr %p\n", CONTEXT->ssql);
+	old_context->last_context = CONTEXT->last_context;
+	CONTEXT->last_context = old_context;
+	printf("swap out old context\n");
+};
+
 
 comOp:
   	  EQ { CONTEXT->comp = EQUAL_TO; }

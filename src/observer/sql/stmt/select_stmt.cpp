@@ -38,7 +38,8 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
+RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables)
+// RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 {
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
@@ -52,6 +53,14 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   // collect tables in `from` statement
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
+
+  if (parent_tables != nullptr) {
+    // add the parent tables into the table map(when sub query)
+    for (auto &table: *parent_tables) {
+      table_map.insert(table);
+    }
+  }
+  
   for (size_t i = 0; i < select_sql.relation_num; i++) {
     const char *table_name = select_sql.relations[i];
     if (nullptr == table_name) {

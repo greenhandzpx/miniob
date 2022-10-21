@@ -92,6 +92,9 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
   condition->condition_type = condition_type;
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
+  condition->right_is_attr = right_is_attr;
+  condition->right_is_sub_query = right_is_sub_query;
+
   if (condition_type != Exists && condition_type != NotExists) {
     if (left_is_attr) {
       condition->left_attr = *left_attr;
@@ -101,7 +104,6 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
 
   }
 
-  condition->right_is_attr = right_is_attr;
   if (right_is_attr) {
     condition->right_attr = *right_attr;
   } else if (right_is_sub_query) {

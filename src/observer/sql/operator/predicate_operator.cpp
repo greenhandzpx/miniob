@@ -39,31 +39,38 @@ RC PredicateOperator::next()
 {
   RC rc = RC::SUCCESS;
 
-  if (children_.size() == 1) {
-    Operator *oper = children_[0];
+  // if (children_.size() == 1) {
+  //   Operator *oper = children_[0];
 
-    while (RC::SUCCESS == (rc = oper->next())) {
-      Tuple *tuple = oper->current_tuple();
-      if (nullptr == tuple) {
-        rc = RC::INTERNAL;
-        LOG_WARN("failed to get tuple from operator");
-        break;
-      }
+  //   while (RC::SUCCESS == (rc = oper->next())) {
+  //     Tuple *tuple = oper->current_tuple();
+  //     if (nullptr == tuple) {
+  //       rc = RC::INTERNAL;
+  //       LOG_WARN("failed to get tuple from operator");
+  //       break;
+  //     }
 
-      if (do_predicate(static_cast<RowTuple &>(*tuple))) {
-        return rc;
-      }
-    }
-    return rc;
-  }
+  //     if (do_predicate(static_cast<RowTuple &>(*tuple))) {
+  //       return rc;
+  //     }
+  //   }
+  //   return rc;
+  // }
 
   while (RC::SUCCESS == (rc = next_when_multi_tables())) {
     if (current_tuple_ != nullptr) {
       // free last current tuple
       delete current_tuple_;
     }
+    if (parent_tuple_ != nullptr) {
+      tuple_stack_.push_back(parent_tuple_);
+    }
     printf("get a new composite tuple\n");
     current_tuple_ = new CompositeTuple(tuple_stack_);
+
+    if (parent_tuple_ != nullptr) {
+      tuple_stack_.pop_back();
+    }
     // Tuple *tuple = current_tuple();
     if (nullptr == current_tuple_) {
       rc = RC::INTERNAL;

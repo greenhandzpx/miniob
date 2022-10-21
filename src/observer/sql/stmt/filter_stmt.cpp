@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "rc.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
+#include "sql/expr/expression.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/project_operator.h"
 #include "sql/operator/table_scan_operator.h"
@@ -126,45 +127,68 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
     assert(condition.right_select != nullptr);
     Stmt *stmt;
-    if ((rc = SelectStmt::create(db, *condition.right_select, stmt)) != RC::SUCCESS) {
+    std::vector<std::pair<std::string, Table*>> parent_tables(tables->begin(), tables->end());
+    // if ((rc = SelectStmt::create(db, *condition.right_select, stmt)) != RC::SUCCESS) {
+    //   return rc;
+    // }
+    if ((rc = SelectStmt::create(db, *condition.right_select, stmt, &parent_tables)) != RC::SUCCESS) {
       return rc;
     }
 
     SelectStmt *select_stmt = reinterpret_cast<SelectStmt*>(stmt);
 
-    PredicateOperator pred_oper(select_stmt->filter_stmt());
+    if (select_stmt->aggregation_ops().size() > 0) {
 
-    std::vector<Operator *> scan_opers(select_stmt->tables().size());
-    for (int i = scan_opers.size()-1; i >= 0; --i) {
-      // scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-      if (nullptr == scan_opers[i]) {
-        scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+      // if the sub query is aggregation, we can compute the result at first
+      // in order not to compute it repeatly later on
+
+      if (select_stmt->aggregation_ops().size() != 1) {
+        // TODO: not sure 
+        return RC::GENERIC_ERROR;
       }
-      printf("%d scan op table %s\n", i, select_stmt->tables()[i]->name());
-      pred_oper.add_child(scan_opers[i]);
-    }
 
-    // TODO memory leak (scan_opers)
+      PredicateOperator pred_oper(select_stmt->filter_stmt());
 
-    ProjectOperator project_oper;
-    project_oper.add_child(&pred_oper);
-    bool is_single_table = select_stmt->tables().size() == 1;
-    // for (int i = select_stmt->query_fields().size()-1; i >= 0; --i) {
-    //   project_oper.add_projection(select_stmt->query_fields()[i].table(), select_stmt->query_fields()[i].meta(), is_single_table);
-    // }
-    for (const Field &field : select_stmt->query_fields()) {
-      project_oper.add_projection(field.table(), field.meta(), is_single_table);
-    }
-    rc = project_oper.open();
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("failed to open operator");
-      return rc;
-    }
+      std::vector<Operator *> scan_opers(select_stmt->tables().size());
+      for (int i = scan_opers.size()-1; i >= 0; --i) {
+        // scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+        if (nullptr == scan_opers[i]) {
+          scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+        }
+        printf("%d scan op table %s\n", i, select_stmt->tables()[i]->name());
+        pred_oper.add_child(scan_opers[i]);
+      }
 
-    std::vector<Value> values;
-    // Value value;
-    ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
-    right = new ValueExpr(value);
+      // TODO memory leak (scan_opers)
+
+      ProjectOperator project_oper;
+      project_oper.add_child(&pred_oper);
+      bool is_single_table = select_stmt->tables().size() == 1;
+      // for (int i = select_stmt->query_fields().size()-1; i >= 0; --i) {
+      //   project_oper.add_projection(select_stmt->query_fields()[i].table(), select_stmt->query_fields()[i].meta(), is_single_table);
+      // }
+      for (const Field &field : select_stmt->query_fields()) {
+        project_oper.add_projection(field.table(), field.meta(), is_single_table);
+      }
+      rc = project_oper.open();
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to open operator");
+        return rc;
+      }
+
+      std::vector<Value> values(select_stmt->aggregation_ops().size());
+      // Value value;
+      ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
+      right = new ValueExpr(values[0]);
+
+
+    } else {
+
+      // if the sub query is normal select, compute the tuple set every time
+      // we get a tuple from the parent query(and put it into the sub query)
+
+      right = new SubQueryExpr(select_stmt); 
+    }
 
   } else {
 

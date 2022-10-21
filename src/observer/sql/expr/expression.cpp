@@ -33,6 +33,8 @@ RC ValueExpr::get_value(const Tuple &tuple, TupleCell & cell) const
 
 void SubQueryExpr::start_query(Tuple *parent_tuple, std::vector<Tuple*> &tuple_set) {
 
+  printf("sub query: start query\n");
+
   RC rc;
   PredicateOperator pred_oper(select_stmt_->filter_stmt());
 

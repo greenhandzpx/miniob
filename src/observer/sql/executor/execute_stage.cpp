@@ -333,6 +333,11 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
     Expression *left = filter_unit->left();
     Expression *right = filter_unit->right();
 
+    if (filter_unit->get_type() != Comparison) {
+      // TODO: optimize
+      continue;
+    }
+
     // **************************typecast***********************************
     if (left->type() == ExprType::VALUE && right->type() == ExprType::VALUE) {
       continue;
