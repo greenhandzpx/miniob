@@ -176,35 +176,36 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         }
       } break;
 
-      case Contain: {
+      case Contain: 
+      case NotContain: {
         TupleCell left_cell;
         left_expr->get_value(tuple, left_cell);
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
-        std::vector<Tuple*> tuple_set;
-        right_sub_query_expr->start_query(&tuple, tuple_set);
+        bool exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, &left_cell);
 
-        // TODO: judge whether the parent tuple is in the tuple set
-
-        
-      } break;
-
-      case NotContain: {
-
+        if (!exists) {
+          if (filter_unit->get_type() == Contain) {
+            return false;
+          }          
+        } else {
+          if (filter_unit->get_type() == NotContain) {
+            return false;
+          }          
+        }
       } break;
 
       case Exists: 
       case NotExists: {
-        TupleCell left_cell;
-        left_expr->get_value(tuple, left_cell);
+        // TupleCell left_cell;
+        // left_expr->get_value(tuple, left_cell);
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
-        std::vector<Tuple*> tuple_set;
-        right_sub_query_expr->start_query(&tuple, tuple_set);
+        bool exists = right_sub_query_expr->check_contain_or_exist(&tuple, false, nullptr);
 
-        if (tuple_set.empty()) {
+        if (!exists) {
           if (filter_unit->get_type() == Exists) {
             return false;
           }

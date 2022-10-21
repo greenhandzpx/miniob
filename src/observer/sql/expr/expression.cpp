@@ -31,10 +31,11 @@ RC ValueExpr::get_value(const Tuple &tuple, TupleCell & cell) const
   return RC::SUCCESS;
 }
 
-void SubQueryExpr::start_query(Tuple *parent_tuple, std::vector<Tuple*> &tuple_set) {
+bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell) {
 
   printf("sub query: start query\n");
 
+  std::vector<Tuple*> tuple_set;
   RC rc;
   PredicateOperator pred_oper(select_stmt_->filter_stmt());
 
@@ -70,7 +71,34 @@ void SubQueryExpr::start_query(Tuple *parent_tuple, std::vector<Tuple*> &tuple_s
     tuple_set.push_back(tuple);
   }
 
+  if (!check_contain) {
+    // check exist
+    return !tuple_set.empty();
+  }
 
+  // check contain
+  assert(left_cell != nullptr);
+  bool exists = false;
+  for (Tuple *tmp_tuple: tuple_set) {
+    // auto tmp_tuple = dynamic_cast<ProjectTuple*>(dummy_tuple);
+    if (tmp_tuple->cell_num() != 1) {
+      // the sub query must select only one field
+      // TODO: not sure
+      return false;
+    }
+    TupleCell tmp_cell;
+    if (tmp_tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+      LOG_WARN("sub query tuple get cell wrong");
+      return false;
+    }
+    int cmp = left_cell->compare(tmp_cell);
+    if (cmp != 0) {
+      continue; 
+    }
+    exists = true;
+    break; 
+  }
+  return exists;
 }
 
 // void SubQueryExpr::add_parent_tuple(Tuple *parent_tuple) {

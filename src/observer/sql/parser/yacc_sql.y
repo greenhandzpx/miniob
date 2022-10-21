@@ -826,6 +826,8 @@ N: /* empty */ {
 	*CONTEXT = tmp; 
 	memset(CONTEXT, 0, sizeof(*CONTEXT));
 	CONTEXT->ssql = (Query *)malloc(sizeof(Query));
+	memset(CONTEXT->ssql, 0, sizeof(Query));
+	
 	printf("SWAP OUT sub query addr %p\n", CONTEXT->ssql);
 	old_context->last_context = CONTEXT->last_context;
 	CONTEXT->last_context = old_context;

@@ -231,6 +231,7 @@ public:
   ProjectTuple() = default;
   virtual ~ProjectTuple()
   {
+    printf("desctruct a project tuple\n");
     for (TupleCellSpec *spec : speces_) {
       delete spec;
     }

@@ -47,6 +47,7 @@ RC ProjectOperator::close()
 Tuple *ProjectOperator::current_tuple()
 {
   tuple_.set_tuple(children_[0]->current_tuple());
+  // printf("tuple addr %p\n", &tuple_);
   return &tuple_;
 }
 

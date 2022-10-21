@@ -678,8 +678,8 @@ static const yytype_int16 yyrline[] =
      528,   529,   530,   531,   532,   535,   537,   541,   546,   551,
      556,   563,   565,   572,   579,   585,   590,   592,   595,   600,
      602,   606,   608,   612,   614,   619,   641,   662,   683,   706,
-     728,   750,   770,   779,   788,   796,   803,   813,   821,   837,
-     838,   839,   840,   841,   842,   843,   847
+     728,   750,   770,   779,   788,   796,   803,   813,   821,   839,
+     840,   841,   842,   843,   844,   845,   849
 };
 #endif
 
@@ -2278,61 +2278,63 @@ yyreduce:
 	*CONTEXT = tmp; 
 	memset(CONTEXT, 0, sizeof(*CONTEXT));
 	CONTEXT->ssql = (Query *)malloc(sizeof(Query));
+	memset(CONTEXT->ssql, 0, sizeof(Query));
+	
 	printf("SWAP OUT sub query addr %p\n", CONTEXT->ssql);
 	old_context->last_context = CONTEXT->last_context;
 	CONTEXT->last_context = old_context;
 	printf("swap out old context\n");
 }
-#line 2287 "yacc_sql.tab.c"
+#line 2289 "yacc_sql.tab.c"
     break;
 
   case 109: /* comOp: EQ  */
-#line 837 "yacc_sql.y"
+#line 839 "yacc_sql.y"
              { CONTEXT->comp = EQUAL_TO; }
-#line 2293 "yacc_sql.tab.c"
+#line 2295 "yacc_sql.tab.c"
     break;
 
   case 110: /* comOp: LT  */
-#line 838 "yacc_sql.y"
+#line 840 "yacc_sql.y"
          { CONTEXT->comp = LESS_THAN; }
-#line 2299 "yacc_sql.tab.c"
+#line 2301 "yacc_sql.tab.c"
     break;
 
   case 111: /* comOp: GT  */
-#line 839 "yacc_sql.y"
+#line 841 "yacc_sql.y"
          { CONTEXT->comp = GREAT_THAN; }
-#line 2305 "yacc_sql.tab.c"
+#line 2307 "yacc_sql.tab.c"
     break;
 
   case 112: /* comOp: LE  */
-#line 840 "yacc_sql.y"
+#line 842 "yacc_sql.y"
          { CONTEXT->comp = LESS_EQUAL; }
-#line 2311 "yacc_sql.tab.c"
+#line 2313 "yacc_sql.tab.c"
     break;
 
   case 113: /* comOp: GE  */
-#line 841 "yacc_sql.y"
+#line 843 "yacc_sql.y"
          { CONTEXT->comp = GREAT_EQUAL; }
-#line 2317 "yacc_sql.tab.c"
+#line 2319 "yacc_sql.tab.c"
     break;
 
   case 114: /* comOp: NE  */
-#line 842 "yacc_sql.y"
+#line 844 "yacc_sql.y"
          { CONTEXT->comp = NOT_EQUAL; }
-#line 2323 "yacc_sql.tab.c"
+#line 2325 "yacc_sql.tab.c"
     break;
 
   case 116: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
-#line 848 "yacc_sql.y"
+#line 850 "yacc_sql.y"
                 {
 		  CONTEXT->ssql->flag = SCF_LOAD_DATA;
 			load_data_init(&CONTEXT->ssql->sstr.load_data, (yyvsp[-1].string), (yyvsp[-4].string));
 		}
-#line 2332 "yacc_sql.tab.c"
+#line 2334 "yacc_sql.tab.c"
     break;
 
 
-#line 2336 "yacc_sql.tab.c"
+#line 2338 "yacc_sql.tab.c"
 
       default: break;
     }
@@ -2525,7 +2527,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 853 "yacc_sql.y"
+#line 855 "yacc_sql.y"
 
 //_____________________________________________________________________
 extern void scan_string(const char *str, yyscan_t scanner);

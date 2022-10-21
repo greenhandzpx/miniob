@@ -118,7 +118,7 @@ public:
     return RC::UNIMPLENMENT;
   }
 
-  void start_query(Tuple *parent_tuple, std::vector<Tuple*> &tuple_set);
+  bool check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell);
 
   // void add_parent_tuple(Tuple *parent_tuple);
 private:

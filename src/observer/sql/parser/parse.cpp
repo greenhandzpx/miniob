@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <mutex>
+#include "parse_defs.h"
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
@@ -114,14 +115,18 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
 }
 void condition_destroy(Condition *condition)
 {
-  if (condition->left_is_attr) {
-    relation_attr_destroy(&condition->left_attr);
-  } else {
-    value_destroy(&condition->left_value);
+  if (condition->condition_type != Exists ||
+      condition->condition_type != NotExists) {
+    if (condition->left_is_attr) {
+      relation_attr_destroy(&condition->left_attr);
+    } else {
+      value_destroy(&condition->left_value);
+    }
   }
+  
   if (condition->right_is_attr) {
     relation_attr_destroy(&condition->right_attr);
-  } else {
+  } else if (!condition->right_is_sub_query) {
     value_destroy(&condition->right_value);
   }
 }
@@ -142,6 +147,7 @@ void attr_info_destroy(AttrInfo *attr_info)
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
+  printf("selects->attr_num %d\n", selects->attr_num);
   selects->attributes[selects->attr_num++] = *rel_attr;
 }
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
