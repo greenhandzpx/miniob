@@ -162,7 +162,7 @@ RC DefaultHandler::drop_table(const char *dbname, const char *relation_name)
 }
 
 RC DefaultHandler::create_index(
-    Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name)
+    Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const std::vector<const char *> &attribute_name)
 {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {

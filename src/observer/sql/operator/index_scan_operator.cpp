@@ -35,7 +35,8 @@ RC IndexScanOperator::open()
     return RC::INTERNAL;
   }
 
-  
+
+  // now index operator is only used for one column index
   IndexScanner *index_scanner = index_->create_scanner(left_cell_.data(), left_cell_.length(), left_inclusive_,
                                                        right_cell_.data(), right_cell_.length(), right_inclusive_);
   if (nullptr == index_scanner) {

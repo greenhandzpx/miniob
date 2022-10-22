@@ -818,7 +818,11 @@ RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name);
+  std::vector<const char*> attribute_names;
+  for (int i = 0; i < create_index.attribute_num; ++i) {
+    attribute_names.push_back(create_index.attribute_name[i]);
+  }
+  RC rc = table->create_index(nullptr, create_index.index_name, attribute_names);
   sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }
@@ -854,15 +858,18 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
   auto size = indexes.size();
   ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
   for (const auto & index : indexes) {
-    ss << table->name() << " | ";
-    // 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
-    ss << 1 << " | ";
-    if (nullptr == index) {
-      session_event->set_response("FAILURE\n");
-      return RC::INTERNAL;
+    size_t n = index->index_meta().field().size();
+    for (int i = 0; i < index->index_meta().field().size(); ++i) {
+      ss << table->name() << " | ";
+      // 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
+      ss << 1 << " | ";
+      if (nullptr == index) {
+        session_event->set_response("FAILURE\n");
+        return RC::INTERNAL;
+      }
+      //// 此处暂无多列索引故无脑输入1。支持多列索引后再改为该列在多列索引中的位置。
+      ss << index->index_meta().name() << " | " << i+1 << " | " << index->index_meta().field()[i] << std::endl;
     }
-    // 此处暂无多列索引故无脑输入1。支持多列索引后再改为该列在多列索引中的位置。
-    ss << index->index_meta().name() << " | " << 1 << " | " << index->index_meta().field() << std::endl;
   }
   session_event->set_response(ss.str().c_str());
   return RC::SUCCESS;
