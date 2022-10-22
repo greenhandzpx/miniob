@@ -78,7 +78,7 @@ ADD_SUBDIRECTORY(deps)
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test/perf)
 
-OPTION(WITH_UNIT_TESTS "Compile miniob with unit tests" ON)
+OPTION(WITH_UNIT_TESTS "Compile miniob with unit tests" OFF)
 
 IF(WITH_UNIT_TESTS)
     ADD_SUBDIRECTORY(unitest)
