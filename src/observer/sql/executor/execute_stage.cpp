@@ -1048,29 +1048,29 @@ RC ExecuteStage::do_delete(SQLStageEvent *sql_event)
 
   RC rc = delete_oper.open();
   if (rc != RC::SUCCESS) {
-    char res[100];
-    sprintf(res, "11%s", strrc(rc));
-    session_event->set_response(res);
-    // session_event->set_response("FAILURE\n");
+    // char res[100];
+    // sprintf(res, "11%s", strrc(rc));
+    // session_event->set_response(res);
+    session_event->set_response("FAILURE\n");
   } else {
     session_event->set_response("SUCCESS\n");
     if (!session->is_trx_multi_operation_mode()) {
       CLogRecord *clog_record = nullptr;
       rc = clog_manager->clog_gen_record(CLogType::REDO_MTR_COMMIT, trx->get_current_id(), clog_record);
       if (rc != RC::SUCCESS || clog_record == nullptr) {
-        char res[100];
-        sprintf(res, "33%s", strrc(rc));
-        session_event->set_response("res");
-        // session_event->set_response("FAILURE\n");
+        // char res[100];
+        // sprintf(res, "33%s", strrc(rc));
+        // session_event->set_response("res");
+        session_event->set_response("FAILURE\n");
         return rc;
       }
 
       rc = clog_manager->clog_append_record(clog_record);
       if (rc != RC::SUCCESS) {
-        char res[100];
-        sprintf(res, "22%s", strrc(rc));
-        session_event->set_response("res");
-        // session_event->set_response("FAILURE\n");
+        // char res[100];
+        // sprintf(res, "22%s", strrc(rc));
+        // session_event->set_response("res");
+        session_event->set_response("FAILURE\n");
         return rc;
       } 
 
