@@ -114,6 +114,15 @@ RC PredicateOperator::next_when_multi_tables() {
     --i;
   }
   if (i < 0) {
+    // zpx:
+    // here means that all tuples have been traveled,
+    // then we open all children, because later on the outside will
+    // close the predicate operator, which means that the chilren will be
+    // closed again, so we open them in advance.
+    // note that this is just a work around, which may be able to be optimized
+    for (int i = 0; i < children_.size(); ++i) {
+      children_[i]->open();
+    }
     return rc;
   }
 
