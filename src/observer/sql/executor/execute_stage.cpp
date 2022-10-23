@@ -823,7 +823,7 @@ RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
   for (int i = 0; i < create_index.attribute_num; ++i) {
     attribute_names.push_back(create_index.attribute_name[i]);
   }
-  RC rc = table->create_index(nullptr, create_index.index_name, attribute_names);
+  RC rc = table->create_index(nullptr, create_index.index_name, attribute_names, create_index.unique);
   sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }
@@ -862,8 +862,13 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
     size_t n = index->index_meta().field().size();
     for (int i = 0; i < index->index_meta().field().size(); ++i) {
       ss << table->name() << " | ";
-      // 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
-      ss << 1 << " | ";
+      //// 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
+      bool unique = index->index_meta().unique();
+      if (unique) {
+        ss << 0 << " | ";
+      } else {
+        ss << 1 << " | ";
+      }
       if (nullptr == index) {
         session_event->set_response("FAILURE\n");
         return RC::INTERNAL;

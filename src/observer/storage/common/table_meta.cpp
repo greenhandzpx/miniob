@@ -176,6 +176,9 @@ const IndexMeta *TableMeta::find_index_by_field(const char *field) const
 const IndexMeta *TableMeta::find_index_by_field(const std::vector<const char *> &field) const
 {
   for (const IndexMeta &index : indexes_) {
+    if (index.field().size() != field.size()) {
+      continue;
+    }
     bool exists = true;
     for (int i = 0; i < field.size(); ++i) {
       if (0 != strcmp(index.field()[i], field[i])) {

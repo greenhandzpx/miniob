@@ -37,8 +37,8 @@ RC IndexScanOperator::open()
 
 
   // now index operator is only used for one column index
-  IndexScanner *index_scanner = index_->create_scanner(left_cell_.data(), left_cell_.length(), left_inclusive_,
-                                                       right_cell_.data(), right_cell_.length(), right_inclusive_);
+  IndexScanner *index_scanner = index_->create_scanner(std::vector<const char*>{left_cell_.data()}, std::vector<int>{left_cell_.length()}, 
+                                                      left_inclusive_, std::vector<const char*>{right_cell_.data()}, std::vector<int>{right_cell_.length()}, right_inclusive_);
   if (nullptr == index_scanner) {
     LOG_WARN("failed to create index scanner");
     return RC::INTERNAL;

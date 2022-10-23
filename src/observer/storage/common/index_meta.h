@@ -30,11 +30,12 @@ class IndexMeta {
 public:
   IndexMeta() = default;
 
-  RC init(const char *name, std::vector<const FieldMeta*> &field);
+  RC init(const char *name, std::vector<const FieldMeta*> &field, bool is_unique);
 
 public:
   const char *name() const;
   std::vector<const char *> field() const;
+  bool unique() const;
 
   void desc(std::ostream &os) const;
 
@@ -45,5 +46,6 @@ public:
 protected:
   std::string name_;   // index's name
   std::vector<std::string> field_;  // field's name
+  bool unique_;   // whether this index is unique or not
 };
 #endif  // __OBSERVER_STORAGE_COMMON_INDEX_META_H__

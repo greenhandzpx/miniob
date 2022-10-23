@@ -43,11 +43,18 @@ public:
     return index_meta_;
   }
 
+  const std::vector<FieldMeta> &field_meta() const
+  {
+    return field_meta_;
+  }
+
   virtual RC insert_entry(const char *record, const RID *rid) = 0;
   virtual RC delete_entry(const char *record, const RID *rid) = 0;
 
-  virtual IndexScanner *create_scanner(const char *left_key, int left_len, bool left_inclusive,
-				       const char *right_key, int right_len, bool right_inclusive) = 0;
+  virtual IndexScanner *create_scanner(const std::vector<const char *> &left_key, const std::vector<int> &left_len, bool left_inclusive,
+			       const std::vector<const char *> &right_key, const std::vector<int> &right_len, bool right_inclusive) = 0;
+  // virtual IndexScanner *create_scanner(const char *left_key, int left_len, bool left_inclusive,
+	// 			       const char *right_key, int right_len, bool right_inclusive) = 0;
 
   virtual RC sync() = 0;
 
