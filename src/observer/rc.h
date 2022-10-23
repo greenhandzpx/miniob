@@ -379,7 +379,10 @@ enum RC {
   /* clog buffer part */
   LOGBUF_FULL = (LOGBUF | (RCLOGBUF::LB_FULL << 8)),
   LOGBUF_EMPTY = (LOGBUF | (RCLOGBUF::LB_EMPTY << 8)),
+  
   INVALID_DATE_IN_PARSE,
+
+  NULL_OP_ON_NON_NULLABLE, // Invalid opreration on non nullable field
 };
 
 extern const char *strrc(RC rc);

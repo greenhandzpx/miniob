@@ -75,7 +75,9 @@ QUOTE            [\'\"]
 [Ii][Nn][Ff][Ii][Ll][Ee]                             RETURN_TOKEN(INFILE);
 [Dd][Aa][Tt][Ee]                      RETURN_TOKEN(DATE_T);  // 增加DATE的token，需要在yacc文件中增加DATE_T的token
 [Tt][Ee][Xx][Tt]                      RETURN_TOKEN(TEXT_T);  // 增考TEXT的token
-[Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]      RETURN_TOKEN(NULLABLE);
+[Nn][Oo][Tt]{WHITE_SAPCE}[Nn][Uu][Ll][Ll] RETURN_TOKEN(NOTNULLABLE); // not null
+[Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]      RETURN_TOKEN(NULLABLE); // NULLABLE
+[Nn][Uu][Ll][Ll]                      RETURN_TOKEN(NULLVALUE); // 返回NULL值
 
 [Cc][Oo][Uu][Nn][Tt]                                 RETURN_TOKEN(COUNT);
 [Aa][Vv][Gg]                                         RETURN_TOKEN(AVG);

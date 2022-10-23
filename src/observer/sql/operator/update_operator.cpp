@@ -42,7 +42,7 @@ RC UpdateOperator::open()
     }
 
     const Value &value = update_stmt_->values()[0];
-    if (field->type() != value.type) {
+    if (field->type() != value.type && value.type != AttrType::NULLS) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta.name(),
           field->name(),
@@ -74,6 +74,14 @@ RC UpdateOperator::open()
 
     // modify the field in the record data
     memcpy(record.data() + field->offset(), value.data, copy_len);
+
+    // set null
+    int null_bit = 1 << table_meta.get_field_place(field->name());
+    if (field->nullable() && value.type == AttrType::NULLS) {
+      *(int *)(record.data() + NULLMAP_OFFSET) |= null_bit;
+    } else {
+      *(int *)(record.data() + NULLMAP_OFFSET) &= ~null_bit;
+    }
 
     rc = table->update_record(trx_, &record);
     if (rc != RC::SUCCESS) {

@@ -121,6 +121,7 @@ ParserContext *get_context(yyscan_t scanner)
         GE
         NE
 		NULLABLE
+		NOTNULLABLE
 
 		COUNT
 		AVG
@@ -153,6 +154,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STAR
 %token <string> STRING_V
 %token <string> DATE_STR
+%token <string> NULLVALUE
 //非终结符
 
 %type <number> type;
@@ -279,7 +281,7 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type LBRACE number RBRACE NONULL
 		{
 			AttrInfo attribute;
 			attr_info_init(&attribute, CONTEXT->id, $2, $4, 0);
@@ -301,7 +303,7 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
-    |ID_get type
+    |ID_get type NONULL
 		{
 			AttrInfo attribute;
 			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
@@ -340,6 +342,10 @@ ID_get:
 		char *temp=$1; 
 		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
 	}
+	;
+
+NONULL:
+	| NOTNULLABLE
 	;
 
 	
@@ -412,6 +418,10 @@ value:
 			CONTEXT->ssql->flag = SCF_INVALID_DATE;
 			return 0;
 		}
+	}
+	|NULLVALUE {
+		value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
+		value_init_null(&CONTEXT->tuples[CONTEXT->tuple_num][CONTEXT->value_num[CONTEXT->tuple_num]++]);
 	}
     ;
     

@@ -393,7 +393,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() != value.type) {
+    if (field->type() != value.type && value.type != NULLS) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta_.name(),
           field->name(),
@@ -406,11 +406,18 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-
+  int null_map = 0; // 记录null值
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     size_t copy_len = field->len();
+    
+    // 记录null值
+    if (field->nullable() && value.type == NULLS) {
+      null_map |= 1 << i;
+      continue;
+    }
+
     if (field->type() == CHARS) {
       const size_t data_len = strlen((const char *)value.data);
       if (copy_len > data_len) {
@@ -418,8 +425,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       }
     }
     memcpy(record + field->offset(), value.data, copy_len);
+
   }
 
+  memcpy(record + NULLMAP_OFFSET, (void *)&null_map, NULLMAP_LENGTH);
   record_out = record;
   return RC::SUCCESS;
 }
