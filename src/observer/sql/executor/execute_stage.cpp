@@ -560,7 +560,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
   }
 
   int cnt = 0;
-
+  std::vector<int> divs;
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     // get current record
     // write to response
@@ -570,11 +570,15 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
       break;
     }
-
+    divs.push_back(0);
     cnt++;
 
     for (int i = 0; i < aggregation_ops.size(); ++i) {
       TupleCell cell;
+      if (cell.attr_type() == AttrType::NULLS) {
+        continue;
+      }
+      divs[cnt]++;
 
       size_t n = select_stmt->query_fields().size();
       if (select_stmt->query_fields()[n-i-1].meta() != nullptr && tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
@@ -585,14 +589,15 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       AggregationOp aggregation_op = aggregation_ops[i];
       switch (aggregation_op) {
         case COUNT_OP: {
-          if (cell.attr_type() != AttrType::NULLS) {
+          // if (cell.attr_type() != AttrType::NULLS) {
             *static_cast<int *>(values[i].data) += 1;
-          }
+          // }
         } break;
 
         case SUM_OP:
         case AVG_OP: {
-          if (values[i].data == nullptr && cell.attr_type() != AttrType::NULLS) {
+          // if (values[i].data == nullptr && cell.attr_type() != AttrType::NULLS) {
+          if (values[i].data == nullptr) {
             values[i].data = new float(0);
           }
           if (cell.attr_type() == AttrType::INTS) {
@@ -603,7 +608,8 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
             float tmp;
             string2float(cell.data(), &tmp);
             *static_cast<float*>(values[i].data) += tmp;
-          } else if (cell.attr_type() != AttrType::NULLS) {
+          // } else if (cell.attr_type() != AttrType::NULLS) {
+          } else {
             LOG_WARN("unsupported attr type");
             return RC::SCHEMA_FIELD_NAME_ILLEGAL;
           }
@@ -688,9 +694,9 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
     }
     if (aggregation_ops[i] == AVG_OP) {
         if (values[i].type == AttrType::INTS) {
-          *static_cast<float*>(values[i].data) /= cnt;
+          *static_cast<float*>(values[i].data) /= divs[i];
         } else if (values[i].type == AttrType::FLOATS) {
-          *static_cast<float*>(values[i].data) /= cnt;
+          *static_cast<float*>(values[i].data) /= divs[i];
         } else {
           LOG_WARN("unsupported attr type");
           return RC::SCHEMA_FIELD_NAME_ILLEGAL;
