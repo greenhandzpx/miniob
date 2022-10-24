@@ -120,8 +120,8 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+		IS
 		NULLABLE
-		NOTNULLABLE
 
 		COUNT
 		AVG
@@ -345,7 +345,7 @@ ID_get:
 	;
 
 NONULL:
-	| NOTNULLABLE
+	| NOT NULLVALUE
 	;
 
 	
@@ -854,7 +854,8 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
-	| 	
+	| IS { CONTEXT->comp = EQUAL_TO; }
+	| IS NOT {CONTEXT->comp = NOT_EQUAL; }
     ;
 
 load_data:
