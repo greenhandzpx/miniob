@@ -45,17 +45,13 @@ typedef enum {
   LESS_THAN,    //"<"     3
   GREAT_EQUAL,  //">="    4
   GREAT_THAN,   //">"     5
-<<<<<<< HEAD
   //***************************like*******************************
   LIKE_OP,      //"like"  6
   NOT_LIKE_OP,  //"not like"  7
   //***************************like*******************************
-  
-=======
   LOGICAL_IS,
   LOGICAL_IS_NOT,
 
->>>>>>> order_by_from_null
   NO_OP
 } CompOp;
 

@@ -97,29 +97,6 @@ extern int yydebug;
     LE = 298,                      /* LE  */
     GE = 299,                      /* GE  */
     NE = 300,                      /* NE  */
-<<<<<<< HEAD
-    NULLABLE = 301,                /* NULLABLE  */
-    COUNT = 302,                   /* COUNT  */
-    AVG = 303,                     /* AVG  */
-    MAX = 304,                     /* MAX  */
-    MIN = 305,                     /* MIN  */
-    SUM = 306,                     /* SUM  */
-    INNER = 307,                   /* INNER  */
-    JOIN = 308,                    /* JOIN  */
-    IN = 309,                      /* IN  */
-    EXISTS = 310,                  /* EXISTS  */
-    LIKE = 311,                    /* LIKE  */
-    NOT = 312,                     /* NOT  */
-    UNIQUE = 313,                  /* UNIQUE  */
-    NUMBER = 314,                  /* NUMBER  */
-    FLOAT = 315,                   /* FLOAT  */
-    ID = 316,                      /* ID  */
-    PATH = 317,                    /* PATH  */
-    SSS = 318,                     /* SSS  */
-    STAR = 319,                    /* STAR  */
-    STRING_V = 320,                /* STRING_V  */
-    DATE_STR = 321                 /* DATE_STR  */
-=======
     IS = 301,                      /* IS  */
     NULLABLE = 302,                /* NULLABLE  */
     COUNT = 303,                   /* COUNT  */
@@ -130,18 +107,19 @@ extern int yydebug;
     INNER = 308,                   /* INNER  */
     JOIN = 309,                    /* JOIN  */
     IN = 310,                      /* IN  */
-    NOT = 311,                     /* NOT  */
-    EXISTS = 312,                  /* EXISTS  */
-    NUMBER = 313,                  /* NUMBER  */
-    FLOAT = 314,                   /* FLOAT  */
-    ID = 315,                      /* ID  */
-    PATH = 316,                    /* PATH  */
-    SSS = 317,                     /* SSS  */
-    STAR = 318,                    /* STAR  */
-    STRING_V = 319,                /* STRING_V  */
-    DATE_STR = 320,                /* DATE_STR  */
-    NULLVALUE = 321                /* NULLVALUE  */
->>>>>>> order_by_from_null
+    EXISTS = 311,                  /* EXISTS  */
+    LIKE = 312,                    /* LIKE  */
+    NOT = 313,                     /* NOT  */
+    UNIQUE = 314,                  /* UNIQUE  */
+    NUMBER = 315,                  /* NUMBER  */
+    FLOAT = 316,                   /* FLOAT  */
+    ID = 317,                      /* ID  */
+    PATH = 318,                    /* PATH  */
+    SSS = 319,                     /* SSS  */
+    STAR = 320,                    /* STAR  */
+    STRING_V = 321,                /* STRING_V  */
+    DATE_STR = 322,                /* DATE_STR  */
+    NULLVALUE = 323                /* NULLVALUE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -150,11 +128,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-<<<<<<< HEAD
-#line 142 "yacc_sql.y"
-=======
-#line 139 "yacc_sql.y"
->>>>>>> order_by_from_null
+#line 143 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -164,7 +138,7 @@ union YYSTYPE
   float floats;
 	char *position;
 
-#line 140 "yacc_sql.tab.h"
+#line 142 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

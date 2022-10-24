@@ -877,13 +877,10 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
-<<<<<<< HEAD
-	| LIKE { CONTEXT->comp = LIKE_OP; }
-	| NOT LIKE { CONTEXT->comp = NOT_LIKE_OP; }
-=======
 	| IS { CONTEXT->comp = LOGICAL_IS; }
 	| IS NOT {CONTEXT->comp = LOGICAL_IS_NOT; }
->>>>>>> order_by_from_null
+	| LIKE { CONTEXT->comp = LIKE_OP; }
+	| NOT LIKE { CONTEXT->comp = NOT_LIKE_OP; }
     ;
 
 load_data:
