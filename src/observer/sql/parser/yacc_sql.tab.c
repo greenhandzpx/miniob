@@ -2355,13 +2355,13 @@ yyreduce:
 
   case 119: /* comOp: IS  */
 #line 857 "yacc_sql.y"
-             { CONTEXT->comp = EQUAL_TO; }
+             { CONTEXT->comp = LOGICAL_IS; }
 #line 2360 "yacc_sql.tab.c"
     break;
 
   case 120: /* comOp: IS NOT  */
 #line 858 "yacc_sql.y"
-                 {CONTEXT->comp = IS_NOT; }
+                 {CONTEXT->comp = LOGICAL_IS_NOT; }
 #line 2366 "yacc_sql.tab.c"
     break;
 

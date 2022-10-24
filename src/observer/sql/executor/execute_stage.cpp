@@ -326,7 +326,7 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
   // 如果没有就找范围比较的，但是直接排除不等比较的索引查询. (你知道为什么?)
   const FilterUnit *better_filter = nullptr;
   for (const FilterUnit * filter_unit : filter_units) {
-    if (filter_unit->comp() == NOT_EQUAL) {
+    if (filter_unit->comp() == NOT_EQUAL || filter_unit->comp() == LOGICAL_IS_NOT || filter_unit->comp() == LOGICAL_IS) {
       continue;
     }
 
@@ -378,6 +378,8 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
     case LESS_THAN:   { comp = GREAT_EQUAL; } break;
     case GREAT_EQUAL: { comp = LESS_THAN; }   break;
     case GREAT_THAN:  { comp = LESS_EQUAL; }  break;
+    case LOGICAL_IS_NOT :     {comp = LOGICAL_IS_NOT;} break;
+    case LOGICAL_IS :     {comp = LOGICAL_IS;} break;
     default: {
     	LOG_WARN("should not happen");
     }

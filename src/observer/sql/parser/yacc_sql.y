@@ -854,8 +854,8 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
-	| IS { CONTEXT->comp = EQUAL_TO; }
-	| IS NOT {CONTEXT->comp = IS_NOT; }
+	| IS { CONTEXT->comp = LOGICAL_IS; }
+	| IS NOT {CONTEXT->comp = LOGICAL_IS_NOT; }
     ;
 
 load_data:

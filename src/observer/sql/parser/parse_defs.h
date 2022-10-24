@@ -45,9 +45,10 @@ typedef enum {
   LESS_THAN,    //"<"     3
   GREAT_EQUAL,  //">="    4
   GREAT_THAN,   //">"     5
-  
-  NO_OP,
-  IS_NOT
+  LOGICAL_IS,
+  LOGICAL_IS_NOT,
+
+  NO_OP
 } CompOp;
 
 typedef enum {
