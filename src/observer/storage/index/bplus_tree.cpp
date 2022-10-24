@@ -1882,9 +1882,14 @@ RC BplusTreeScanner::open(const std::vector<const char *> &left_user_key, const 
   } else {
 
     char *right_key = nullptr;
+
+    if (right_user_key.size() != tree_handler_.file_header_.column_num) {
+      LOG_WARN("right user key size doesn't match the tree key column num");
+      return RC::GENERIC_ERROR;
+    }
     std::vector<const char *> fixed_right_keys(right_user_key.size());
     for (int i = 0; i < fixed_right_keys.size(); ++i) {
-      fixed_right_keys[i] = left_user_key[i];
+      fixed_right_keys[i] = right_user_key[i];
       char *fixed_right_key_tmp = const_cast<char *>(fixed_right_keys[i]);
 
       bool should_include_after_fix = false;
