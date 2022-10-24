@@ -105,7 +105,7 @@ QUOTE            [\'\"]
 
 
 {QUOTE}([0-9]+)\-([0-9]+)\-([0-9]+){QUOTE} yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);  // 使用正则表达式过滤DATE。需要在yacc文件中增加 %token <string> DATE_STR
-{QUOTE}[A-Za-z0-9_%/\.\-\40\47]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like,{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
+{QUOTE}[A-Za-z0-9_%/\.\-\40]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like,{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 
 .                                                    printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
