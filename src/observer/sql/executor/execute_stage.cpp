@@ -328,9 +328,14 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
   // 如果没有就找范围比较的，但是直接排除不等比较的索引查询. (你知道为什么?)
   const FilterUnit *better_filter = nullptr;
   for (const FilterUnit * filter_unit : filter_units) {
+    if (filter_unit->get_type() != Comparison) {
+      // TODO: optimize
+      continue;
+    }
     if (filter_unit->comp() == NOT_EQUAL) {
       continue;
     }
+
     // **************************like***********************************
     // puzzy query should not use index to search
     if (filter_unit->comp() == LIKE_OP || filter_unit->comp() == NOT_LIKE_OP) {
@@ -340,18 +345,6 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
 
     Expression *left = filter_unit->left();
     Expression *right = filter_unit->right();
-
-
-    if (filter_unit->get_type() != Comparison) {
-      // TODO: optimize
-      continue;
-    }
-    if (filter_unit->comp() == NOT_EQUAL) {
-      continue;
-    }
-    Expression *left = filter_unit->left();
-    Expression *right = filter_unit->right();
-
 
     // **************************typecast***********************************
     //value和value比较不应该走索引
