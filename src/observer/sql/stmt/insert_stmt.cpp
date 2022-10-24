@@ -72,6 +72,7 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
       const AttrType field_type = field_meta->type();
       const AttrType value_type = tuples[k][i].type;
       if (field_type != value_type) { // TODO try to convert the value type to field type
+
         // *********************************typecast****************************************
         if (field_type == INTS && value_type == CHARS) {
           float num = 0;

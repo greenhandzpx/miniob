@@ -146,6 +146,7 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     Expression *left_expr = filter_unit->left();
     Expression *right_expr = filter_unit->right();
 
+
     switch (filter_unit->get_type()) {
       case Comparison: {
 
@@ -176,6 +177,20 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         case GREAT_THAN: {
           filter_result = (compare > 0);
         } break;
+
+        // *****************************like*************************************
+        case LIKE_OP: {
+          filter_result = left_cell.fuzzy_query_compare(right_cell);
+          printf("like   %s to %s\n", left_cell.data(), right_cell.data());
+          printf("like %d\n", filter_result);
+        } break;
+
+        case NOT_LIKE_OP: {
+          filter_result = !left_cell.fuzzy_query_compare(right_cell);
+          printf("not like   %s to %s\n", left_cell.data(), right_cell.data());
+          printf("not like %d\n", filter_result);
+        } break;
+        // *****************************like*************************************
         default: {
           LOG_WARN("invalid compare type: %d", comp);
         } break;
@@ -224,6 +239,7 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
           }
         }
       } break;
+
     }
 
   }

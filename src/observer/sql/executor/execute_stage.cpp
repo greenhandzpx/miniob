@@ -317,6 +317,7 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
 IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
+  printf("like filter length is %d \n", filter_units.size());
   if (filter_units.empty() ) {
     return nullptr;
   }
@@ -330,9 +331,16 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
     if (filter_unit->comp() == NOT_EQUAL) {
       continue;
     }
+    // **************************like***********************************
+    // puzzy query should not use index to search
+    if (filter_unit->comp() == LIKE_OP || filter_unit->comp() == NOT_LIKE_OP) {
+      continue;
+    }
+    // **************************like***************************
 
     Expression *left = filter_unit->left();
     Expression *right = filter_unit->right();
+
 
     if (filter_unit->get_type() != Comparison) {
       // TODO: optimize
@@ -340,11 +348,15 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
     }
 
     // **************************typecast***********************************
+    //value和value比较不应该走索引
+
     if (left->type() == ExprType::VALUE && right->type() == ExprType::VALUE) {
       continue;
     }
     // **************************typecast***************************
-    
+
+
+
     if (left->type() == ExprType::FIELD && right->type() == ExprType::VALUE) {
     } else if (left->type() == ExprType::VALUE && right->type() == ExprType::FIELD) {
       std::swap(left, right);
@@ -693,6 +705,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   for (int i = 0; i< scan_opers.size(); ++i) {
     printf("add scan oper %d\n", i);
     scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+    
     if (nullptr == scan_opers[i]) {
        // TODO memory leak
       scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
@@ -764,7 +777,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   } else {
     
     // normal select 
-
+    
     print_tuple_header(ss, project_oper);
     Tuple *tuple;
     while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {

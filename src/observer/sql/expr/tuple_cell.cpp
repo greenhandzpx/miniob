@@ -94,7 +94,22 @@ int TupleCell::compare(const TupleCell &other) const
 
   // ******************************typecast***************************************
 
-  
+
   LOG_WARN("not supported");
   return -1; // TODO return rc?
 }
+
+
+// **********************************like*************************************************
+bool TupleCell::fuzzy_query_compare(const TupleCell &other) const 
+{
+  if (this->attr_type_ != other.attr_type_ || this->attr_type_ != CHARS) return false;
+
+  std::string s1 = this->data_;
+  std::string s2 = other.data_;
+
+  // s1 like s2？
+
+  return is_like(s1, s2);
+}
+// **********************************like*************************************************
