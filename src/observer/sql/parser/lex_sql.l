@@ -87,7 +87,6 @@ QUOTE            [\'\"]
 [Jj][Oo][Ii][Nn]                                     RETURN_TOKEN(JOIN);
 
 [Ii][Nn]                                             RETURN_TOKEN(IN);
-[Nn][Oo][Tt]                                         RETURN_TOKEN(NOT);
 [Ee][Xx][Ii][Ss][Tt][Ss]                             RETURN_TOKEN(EXISTS);
 
 "("                                                  RETURN_TOKEN(LBRACE);

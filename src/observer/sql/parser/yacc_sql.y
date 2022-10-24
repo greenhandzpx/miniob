@@ -132,7 +132,6 @@ ParserContext *get_context(yyscan_t scanner)
 		JOIN
 
 		IN 
-		NOT
 		EXISTS
 
 		LIKE
