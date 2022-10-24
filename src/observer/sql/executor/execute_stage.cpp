@@ -559,8 +559,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
     }
   }
 
-  int cnt = 0;
-  std::vector<int> divs;
+  std::vector<int> divs(aggregation_ops.size());
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     // get current record
     // write to response
@@ -570,21 +569,20 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
       break;
     }
-    divs.push_back(0);
-    cnt++;
 
     for (int i = 0; i < aggregation_ops.size(); ++i) {
       TupleCell cell;
-      if (cell.attr_type() == AttrType::NULLS) {
-        continue;
-      }
-      divs[cnt]++;
 
       size_t n = select_stmt->query_fields().size();
       if (select_stmt->query_fields()[n-i-1].meta() != nullptr && tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
         LOG_WARN("cannot get the cell value");
         break;
       }
+
+      if (cell.attr_type() == AttrType::NULLS) {
+        continue;
+      }
+      divs[i]++;
 
       AggregationOp aggregation_op = aggregation_ops[i];
       switch (aggregation_op) {
