@@ -1422,7 +1422,7 @@ void BplusTreeHandler::free_key(char *key)
 RC BplusTreeHandler::insert_entry(std::vector<const char *> &user_key, const RID *rid)
 // RC BplusTreeHandler::insert_entry(const char *user_key, const RID *rid)
 {
-  if (user_key.empty() || rid == nullptr) {
+  if (user_key.empty() || user_key[0] == nullptr || rid == nullptr) {
     LOG_WARN("Invalid arguments, key is empty or rid is empty");
     return RC::INVALID_ARGUMENT;
   }
@@ -1763,7 +1763,8 @@ RC BplusTreeScanner::open(const std::vector<const char *> &left_user_key, const 
   inited_ = true;
   
   // 校验输入的键值是否是合法范围
-  if (left_user_key.size() > 0 && right_user_key.size() > 0) {
+  if (left_user_key.size() > 0 && right_user_key.size() > 0 && 
+      left_user_key[0] && right_user_key[0]) {
     // const auto &attr_comparator = tree_handler_.key_comparator_.attr_comparator();
     // const int result = attr_comparator(left_user_key, right_user_key);
 

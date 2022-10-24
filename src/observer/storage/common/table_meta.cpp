@@ -162,15 +162,7 @@ const IndexMeta *TableMeta::index(const char *name) const
 
 const IndexMeta *TableMeta::find_index_by_field(const char *field) const
 {
-  for (const IndexMeta &index : indexes_) {
-    if (index.field().size() != 1) {
-      continue;
-    }
-    if (0 == strcmp(index.field()[0], field)) {
-      return &index;
-    }
-  }
-  return nullptr;
+  return find_index_by_field(std::vector<const char*>{field});
 }
 
 const IndexMeta *TableMeta::find_index_by_field(const std::vector<const char *> &field) const
