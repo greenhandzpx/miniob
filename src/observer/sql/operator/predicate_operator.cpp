@@ -156,6 +156,17 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         left_expr->get_value(tuple, left_cell);
         right_expr->get_value(tuple, right_cell);
 
+        // is null 和 is not null 的逻辑判断
+        if (left_cell.attr_type() == AttrType::NULLS || right_cell.attr_type() == AttrType::NULLS) {
+          if (comp == LOGICAL_IS) {
+            return left_cell.attr_type() == right_cell.attr_type();
+          } else if (comp == LOGICAL_IS_NOT) {
+            return left_cell.attr_type() != right_cell.attr_type();
+          } else {
+            return false;
+          }
+        }
+
         const int compare = left_cell.compare(right_cell);
         bool filter_result = false;
         switch (comp) {

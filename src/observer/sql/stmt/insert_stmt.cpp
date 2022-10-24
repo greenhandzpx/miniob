@@ -73,6 +73,20 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
       const AttrType value_type = tuples[k][i].type;
       if (field_type != value_type) { // TODO try to convert the value type to field type
 
+        //  ******** value为null值 *********
+        if (value_type == NULLS) {
+          // field 为 nullable，合法 否则不合法
+          if (field_meta->nullable()) {
+            // 生成 xxxxxx
+            continue;
+          } else {
+            LOG_WARN("insert null into non-nullable field!\n");
+            return RC::NULL_OP_ON_NON_NULLABLE;
+          }
+
+        }
+
+
         // *********************************typecast****************************************
         if (field_type == INTS && value_type == CHARS) {
           float num = 0;

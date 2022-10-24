@@ -730,7 +730,7 @@ TEST(test_bplus_tree, test_bplus_tree_insert)
 
   ::remove(index_name);
   handler = new BplusTreeHandler();
-  handler->create(index_name, INTS, sizeof(int), ORDER, ORDER);
+  handler->create(index_name, AttrType::INTS, sizeof(int), ORDER, ORDER);
 
   test_insert();
 

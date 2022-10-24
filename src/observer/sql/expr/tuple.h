@@ -109,11 +109,16 @@ public:
       LOG_WARN("invalid argument. index=%d", index);
       return RC::INVALID_ARGUMENT;
     }
-
     const TupleCellSpec *spec = speces_[index];
     FieldExpr *field_expr = (FieldExpr *)spec->expression();
     const FieldMeta *field_meta = field_expr->field().meta();
-    cell.set_type(field_meta->type());
+    int null_map = *(int *)(record_->data() + NULLMAP_OFFSET);
+    // 暂时直接减2（sys_fields的大小)
+    if ((null_map & (1 << index - 2)) && field_meta->nullable()) {
+      cell.set_type(AttrType::NULLS);
+    } else {
+      cell.set_type(field_meta->type());
+    }
     cell.set_data(this->record_->data() + field_meta->offset());
     cell.set_length(field_meta->len());
     return RC::SUCCESS;
