@@ -45,11 +45,17 @@ typedef enum {
   LESS_THAN,    //"<"     3
   GREAT_EQUAL,  //">="    4
   GREAT_THAN,   //">"     5
+<<<<<<< HEAD
   //***************************like*******************************
   LIKE_OP,      //"like"  6
   NOT_LIKE_OP,  //"not like"  7
   //***************************like*******************************
   
+=======
+  LOGICAL_IS,
+  LOGICAL_IS_NOT,
+
+>>>>>>> order_by_from_null
   NO_OP
 } CompOp;
 
@@ -70,7 +76,8 @@ typedef enum
   INTS,
   FLOATS,
   DATES,
-  TEXTS
+  TEXTS,
+  NULLS
 } AttrType;
 
 //属性值
@@ -245,6 +252,7 @@ void value_init_integer(Value *value, int v);
 void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 int value_init_date(Value *value, const char *v);
+void value_init_null(Value *value);
 void value_destroy(Value *value);
 
 void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,

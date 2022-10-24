@@ -97,6 +97,7 @@ extern int yydebug;
     LE = 298,                      /* LE  */
     GE = 299,                      /* GE  */
     NE = 300,                      /* NE  */
+<<<<<<< HEAD
     NULLABLE = 301,                /* NULLABLE  */
     COUNT = 302,                   /* COUNT  */
     AVG = 303,                     /* AVG  */
@@ -118,6 +119,29 @@ extern int yydebug;
     STAR = 319,                    /* STAR  */
     STRING_V = 320,                /* STRING_V  */
     DATE_STR = 321                 /* DATE_STR  */
+=======
+    IS = 301,                      /* IS  */
+    NULLABLE = 302,                /* NULLABLE  */
+    COUNT = 303,                   /* COUNT  */
+    AVG = 304,                     /* AVG  */
+    MAX = 305,                     /* MAX  */
+    MIN = 306,                     /* MIN  */
+    SUM = 307,                     /* SUM  */
+    INNER = 308,                   /* INNER  */
+    JOIN = 309,                    /* JOIN  */
+    IN = 310,                      /* IN  */
+    NOT = 311,                     /* NOT  */
+    EXISTS = 312,                  /* EXISTS  */
+    NUMBER = 313,                  /* NUMBER  */
+    FLOAT = 314,                   /* FLOAT  */
+    ID = 315,                      /* ID  */
+    PATH = 316,                    /* PATH  */
+    SSS = 317,                     /* SSS  */
+    STAR = 318,                    /* STAR  */
+    STRING_V = 319,                /* STRING_V  */
+    DATE_STR = 320,                /* DATE_STR  */
+    NULLVALUE = 321                /* NULLVALUE  */
+>>>>>>> order_by_from_null
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -126,7 +150,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
+<<<<<<< HEAD
 #line 142 "yacc_sql.y"
+=======
+#line 139 "yacc_sql.y"
+>>>>>>> order_by_from_null
 
   struct _Attr *attr;
   struct _Condition *condition1;

@@ -15,6 +15,9 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_STORAGE_COMMON_TABLE_META_H__
 #define __OBSERVER_STORAGE_COMMON_TABLE_META_H__
 
+#define NULLMAP_OFFSET 4
+#define NULLMAP_LENGTH 4
+
 #include <string>
 #include <vector>
 
@@ -45,6 +48,7 @@ public:
   const std::vector<FieldMeta> *field_metas() const { return &fields_; }
   int field_num() const; // sys field included
   int sys_field_num() const;
+  int get_field_place(const char *name) const;
 
   const IndexMeta *index(const char *name) const;
   const IndexMeta *find_index_by_field(const char *field) const;
