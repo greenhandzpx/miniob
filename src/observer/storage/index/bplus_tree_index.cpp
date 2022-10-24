@@ -137,8 +137,10 @@ RC BplusTreeIndex::delete_entry(const char *record, const RID *rid)
   // return index_handler_.delete_entry(record + field_meta_.offset(), rid);
 }
 
-IndexScanner *BplusTreeIndex::create_scanner(const char *left_key, int left_len, bool left_inclusive,
-					     const char *right_key, int right_len, bool right_inclusive)
+IndexScanner *BplusTreeIndex::create_scanner(const std::vector<const char *> &left_key, const std::vector<int> &left_len, bool left_inclusive,
+          const std::vector<const char *> &right_key, const std::vector<int> &right_len, bool right_inclusive)
+// IndexScanner *BplusTreeIndex::create_scanner(const char *left_key, int left_len, bool left_inclusive,
+// 					     const char *right_key, int right_len, bool right_inclusive)
 {
   BplusTreeIndexScanner *index_scanner = new BplusTreeIndexScanner(index_handler_);
   RC rc = index_scanner->open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
@@ -164,8 +166,10 @@ BplusTreeIndexScanner::~BplusTreeIndexScanner() noexcept
   tree_scanner_.close();
 }
 
-RC BplusTreeIndexScanner::open(const char *left_key, int left_len, bool left_inclusive,
-                               const char *right_key, int right_len, bool right_inclusive)
+RC BplusTreeIndexScanner::open(const std::vector<const char *> &left_key, const std::vector<int> &left_len, bool left_inclusive,
+          const std::vector<const char *> &right_key, const std::vector<int> &right_len, bool right_inclusive)
+// RC BplusTreeIndexScanner::open(const char *left_key, int left_len, bool left_inclusive,
+//                                const char *right_key, int right_len, bool right_inclusive)
 {
   return tree_scanner_.open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
 }

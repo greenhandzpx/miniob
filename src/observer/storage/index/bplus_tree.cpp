@@ -1422,7 +1422,7 @@ void BplusTreeHandler::free_key(char *key)
 RC BplusTreeHandler::insert_entry(std::vector<const char *> &user_key, const RID *rid)
 // RC BplusTreeHandler::insert_entry(const char *user_key, const RID *rid)
 {
-  if (user_key.empty() || rid == nullptr) {
+  if (user_key.empty() || user_key[0] == nullptr || rid == nullptr) {
     LOG_WARN("Invalid arguments, key is empty or rid is empty");
     return RC::INVALID_ARGUMENT;
   }
@@ -1462,7 +1462,7 @@ RC BplusTreeHandler::insert_entry(std::vector<const char *> &user_key, const RID
   return RC::SUCCESS;
 }
 
-RC BplusTreeHandler::get_entry(const char *user_key, int key_len, std::list<RID> &rids)
+RC BplusTreeHandler::get_entry(const std::vector<const char *> &user_key, const std::vector<int> &key_len, std::list<RID> &rids)
 {
   BplusTreeScanner scanner(*this);
   RC rc = scanner.open(user_key, key_len, true/*left_inclusive*/, user_key, key_len, true/*right_inclusive*/);
@@ -1748,8 +1748,11 @@ BplusTreeScanner::~BplusTreeScanner()
   close();
 }
 
-RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inclusive,
-                          const char *right_user_key, int right_len, bool right_inclusive)
+RC BplusTreeScanner::open(const std::vector<const char *> &left_user_key, const std::vector<int> &left_len, 
+      bool left_inclusive, const std::vector<const char *> &right_user_key, const std::vector<int> &right_len, 
+      bool right_inclusive)
+// RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inclusive,
+//                           const char *right_user_key, int right_len, bool right_inclusive)
 {
   RC rc = RC::SUCCESS;
   if (inited_) {
@@ -1760,12 +1763,28 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
   inited_ = true;
   
   // 校验输入的键值是否是合法范围
-  if (left_user_key && right_user_key) {
+  if (left_user_key.size() > 0 && right_user_key.size() > 0 && 
+      left_user_key[0] && right_user_key[0]) {
     // const auto &attr_comparator = tree_handler_.key_comparator_.attr_comparator();
     // const int result = attr_comparator(left_user_key, right_user_key);
 
-    // TODO: not sure here the left user key is a combination of several fields or just one field
-    const int result = tree_handler_.key_comparator_(left_user_key, right_user_key);
+    // const int result = tree_handler_.key_comparator_(left_user_key, right_user_key);
+
+    // // TODO: not sure here the left user key is a combination of several fields or just one field
+
+    // check the user key's attrs(i.e. except the rid(which is the reason why we take the attr comparator out instead of 
+    // directly using the key comparator))
+    auto attr_comparators = tree_handler_.key_comparator_.attr_comparator();
+
+    int result = 0;
+    for (int i = 0; i < attr_comparators.size(); ++i) {
+      // check the fields from left to right until find two that don't equal
+      // TODO: maybe we should check the boundary?
+      result = attr_comparators[i](left_user_key[i], right_user_key[i]);
+      if (result != 0) {
+        break;
+      } 
+    }
     if (result > 0 || // left < right
          // left == right but is (left,right)/[left,right) or (left,right]
 	(result == 0 && (left_inclusive == false || right_inclusive == false))) { 
@@ -1773,7 +1792,7 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
     }
   }
 
-  if (nullptr == left_user_key) {
+  if (left_user_key.empty() || left_user_key[0] == nullptr) {
     rc = tree_handler_.left_most_page(left_frame_);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to find left most page. rc=%d:%s", rc, strrc(rc));
@@ -1784,30 +1803,42 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
   } else {
     char *left_key = nullptr;
 
-    char *fixed_left_key = const_cast<char *>(left_user_key);
-    assert(tree_handler_.file_header_.column_num == 1);
-    if (tree_handler_.file_header_.attr_type[0] == CHARS) {
-      bool should_inclusive_after_fix = false;
-      rc = fix_user_key(left_user_key, left_len, true/*greater*/, &fixed_left_key, &should_inclusive_after_fix);
-      if (rc != RC::SUCCESS) {
-        LOG_WARN("failed to fix left user key. rc=%s", strrc(rc));
-        return rc;
-      }
+    if (left_user_key.size() != tree_handler_.file_header_.column_num) {
+      LOG_WARN("left user key size doesn't match the tree key column num");
+      return RC::GENERIC_ERROR;
+    }
+    std::vector<const char *> fixed_left_keys(left_user_key.size());
+    for (int i = 0; i < fixed_left_keys.size(); ++i) {
+      fixed_left_keys[i] = left_user_key[i];
+      char *fixed_left_key_tmp = const_cast<char *>(fixed_left_keys[i]);
 
-      if (should_inclusive_after_fix) {
-	      left_inclusive = true;
+      if (tree_handler_.file_header_.attr_type[i] == CHARS) {
+        bool should_inclusive_after_fix = false;
+        rc = fix_user_key(left_user_key[i], left_len[i], true/*greater*/, &fixed_left_key_tmp, &should_inclusive_after_fix);
+        fixed_left_keys[i] = fixed_left_key_tmp;
+        if (rc != RC::SUCCESS) {
+          LOG_WARN("failed to fix left user key. rc=%s", strrc(rc));
+          return rc;
+        }
+
+        if (should_inclusive_after_fix) {
+          left_inclusive = true;
+        }
       }
     }
-
+    // char *fixed_left_key = const_cast<char *>(left_user_key);
+    // assert(tree_handler_.file_header_.column_num == 1);
     if (left_inclusive) {
-      left_key = tree_handler_.make_key(fixed_left_key, *RID::min());
+      left_key = tree_handler_.make_key(fixed_left_keys, *RID::min());
     } else {
-      left_key = tree_handler_.make_key(fixed_left_key, *RID::max());
+      left_key = tree_handler_.make_key(fixed_left_keys, *RID::max());
     }
 
-    if (fixed_left_key != left_user_key) {
-      delete[] fixed_left_key;
-      fixed_left_key = nullptr;
+    for (int i = 0; i < fixed_left_keys.size(); ++i) {
+       if (fixed_left_keys[i] != left_user_key[i]) {
+          delete[] fixed_left_keys[i];
+          fixed_left_keys[i] = nullptr;
+       }
     }
     rc = tree_handler_.find_leaf(left_key, left_frame_);
 
@@ -1839,7 +1870,7 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
   }
 
   // 没有指定右边界范围，那么就返回右边界最大值
-  if (nullptr == right_user_key) {
+  if (right_user_key.empty() || nullptr == right_user_key[0]) {
     rc = tree_handler_.right_most_page(right_frame_);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to fetch right most page. rc=%d:%s", rc, strrc(rc));
@@ -1851,29 +1882,38 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
   } else {
 
     char *right_key = nullptr;
-    char *fixed_right_key = const_cast<char *>(right_user_key);
-    bool should_include_after_fix = false;
-    assert(tree_handler_.file_header_.column_num == 1);
-    if (tree_handler_.file_header_.attr_type[0] == CHARS) {
-      rc = fix_user_key(right_user_key, right_len, false/*want_greater*/, &fixed_right_key, &should_include_after_fix);
-      if (rc != RC::SUCCESS) {
-        LOG_WARN("failed to fix right user key. rc=%s", strrc(rc));
-        return rc;
-      }
+    std::vector<const char *> fixed_right_keys(right_user_key.size());
+    for (int i = 0; i < fixed_right_keys.size(); ++i) {
+      fixed_right_keys[i] = left_user_key[i];
+      char *fixed_right_key_tmp = const_cast<char *>(fixed_right_keys[i]);
 
-      if (should_include_after_fix) {
-	      right_inclusive = true;
+      bool should_include_after_fix = false;
+      // assert(tree_handler_.file_header_.column_num == 1);
+      if (tree_handler_.file_header_.attr_type[i] == CHARS) {
+        rc = fix_user_key(right_user_key[i], right_len[i], false/*want_greater*/, &fixed_right_key_tmp, &should_include_after_fix);
+        fixed_right_keys[i] = fixed_right_key_tmp;
+        if (rc != RC::SUCCESS) {
+          LOG_WARN("failed to fix right user key. rc=%s", strrc(rc));
+          return rc;
+        }
+
+        if (should_include_after_fix) {
+          right_inclusive = true;
+        }
       }
     }
+    // char *fixed_right_key = const_cast<char *>(right_user_key);
     if (right_inclusive) {
-      right_key = tree_handler_.make_key(fixed_right_key, *RID::max());
+      right_key = tree_handler_.make_key(fixed_right_keys, *RID::max());
     } else {
-      right_key = tree_handler_.make_key(fixed_right_key, *RID::min());
+      right_key = tree_handler_.make_key(fixed_right_keys, *RID::min());
     }
 
-    if (fixed_right_key != right_user_key) {
-      delete[] fixed_right_key;
-      fixed_right_key = nullptr;
+    for (int i = 0;  i < fixed_right_keys.size(); ++i) {
+      if (fixed_right_keys[i] != right_user_key[i]) {
+        delete[] fixed_right_keys[i];
+        fixed_right_keys[i] = nullptr;
+      }
     }
 
     rc = tree_handler_.find_leaf(right_key, right_frame_);
@@ -1998,8 +2038,8 @@ RC BplusTreeScanner::fix_user_key(const char *user_key, int key_len, bool want_g
   }
 
   // 这里很粗暴，变长字段才需要做调整，其它默认都不需要做调整
-  assert(tree_handler_.file_header_.column_num == 1);
-  assert(tree_handler_.file_header_.attr_type[0] == CHARS);
+  // assert(tree_handler_.file_header_.column_num == 1);
+  // assert(tree_handler_.file_header_.attr_type[0] == CHARS);
   assert(strlen(user_key) >= static_cast<size_t>(key_len));
   
   *should_inclusive = false;

@@ -32,6 +32,7 @@ typedef struct ParserContext {
   Query *sub_query;
   struct ParserContext *last_context;  // when encounting a sub query, the old context will be placed here(like a stack)
   
+  int unique;
 } ParserContext;
 
 //获取子串
@@ -136,6 +137,7 @@ ParserContext *get_context(yyscan_t scanner)
 
 		LIKE
 		NOT
+		UNIQUE
 
 %union {
   struct _Attr *attr;
@@ -251,12 +253,26 @@ desc_table:
     ;
 
 create_index:		/*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID index_attr_list RBRACE SEMICOLON 
+    CREATE unique_option INDEX ID ON ID LBRACE ID index_attr_list RBRACE SEMICOLON 
 		{
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8, CONTEXT->unique);
 		}
     ;
+unique_option:
+	/* empty */
+	| UNIQUE {
+		CONTEXT->unique = 1;
+	};
+
+/* /* create_unique_index:		create index 语句的语法解析树 */
+    /* CREATE INDEX ID ON ID LBRACE ID index_attr_list RBRACE SEMICOLON 
+		{
+			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7, 1);
+		}
+    ; */ 
+
 index_attr_list:
 	/* empty */
 	| COMMA ID index_attr_list {
