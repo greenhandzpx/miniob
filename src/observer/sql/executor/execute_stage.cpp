@@ -355,10 +355,15 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
     // **************************typecast***************************
 
 
-
+    bool can_find_by_index = false;
     if (left->type() == ExprType::FIELD && right->type() == ExprType::VALUE) {
+      can_find_by_index = true;
     } else if (left->type() == ExprType::VALUE && right->type() == ExprType::FIELD) {
       std::swap(left, right);
+      can_find_by_index = true;
+    }
+    if (!can_find_by_index) {
+      continue;
     }
     FieldExpr &left_field_expr = *(FieldExpr *)left;
     const Field &field = left_field_expr.field();
