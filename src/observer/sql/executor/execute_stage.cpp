@@ -310,6 +310,7 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
 IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
+  printf("like filter length is %d \n", filter_units.size());
   if (filter_units.empty() ) {
     return nullptr;
   }

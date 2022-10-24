@@ -139,29 +139,42 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
     switch (comp) {
     case EQUAL_TO: {
       filter_result = (0 == compare); 
+      printf("== %d\n", filter_result);
     } break;
     case LESS_EQUAL: {
       filter_result = (compare <= 0); 
+      printf("<= bbb %d\n", filter_result);
     } break;
     case NOT_EQUAL: {
       filter_result = (compare != 0);
+      printf("!= %d\n", filter_result);
     } break;
     case LESS_THAN: {
       filter_result = (compare < 0);
+      printf("<   %d to %d\n", *left_cell.data(), *right_cell.data());
+      printf("< %d\n", filter_result);
     } break;
     case GREAT_EQUAL: {
       filter_result = (compare >= 0);
+      printf(">= %d\n", filter_result);
     } break;
     case GREAT_THAN: {
+      
       filter_result = (compare > 0);
+      printf(">   %d to %d\n", *left_cell.data(), *right_cell.data());
+      printf("> %d\n", filter_result);
     } break;
     // *****************************like*************************************
     case LIKE_OP: {
       filter_result = left_cell.fuzzy_query_compare(right_cell);
+      printf("like   %s to %s\n", left_cell.data(), right_cell.data());
+      printf("like %d\n", filter_result);
     } break;
 
     case NOT_LIKE_OP: {
       filter_result = !left_cell.fuzzy_query_compare(right_cell);
+      printf("not like   %s to %s\n", left_cell.data(), right_cell.data());
+      printf("not like %d\n", filter_result);
     } break;
     // *****************************like*************************************
     default: {
