@@ -51,6 +51,10 @@ RC UpdateOperator::open()
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
 
+    if (!field->nullable() && value.type == AttrType::NULLS) {
+      return RC::NULL_OP_ON_NON_NULLABLE;
+    }
+
     // delete old index 
     rc = table->delete_entry_of_indexes(record.data(), record.rid(), false); 
 
