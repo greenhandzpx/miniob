@@ -147,7 +147,7 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         right_expr->get_value(tuple, right_cell);
 
         if (left_cell.attr_type() == AttrType::NULLS || right_cell.attr_type() == AttrType::NULLS) {
-            return comp == NOT_EQUAL;
+            return comp == IS_NOT;
         }
 
         const int compare = left_cell.compare(right_cell);

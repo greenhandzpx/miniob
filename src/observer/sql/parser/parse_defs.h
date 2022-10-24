@@ -46,7 +46,8 @@ typedef enum {
   GREAT_EQUAL,  //">="    4
   GREAT_THAN,   //">"     5
   
-  NO_OP
+  NO_OP,
+  IS_NOT
 } CompOp;
 
 typedef enum {
