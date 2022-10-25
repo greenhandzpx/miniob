@@ -220,11 +220,9 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
 
         bool exists; 
         if (right_sub_query_expr) {
-          exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, nullptr);
+          exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, &left_cell);
         } else {
           auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
-          TupleCell left_cell;
-          left_expr->get_value(tuple, left_cell);
           printf("predicate operator: check contain(value set)\n");
           exists = right_value_set_expr->check_contain(left_cell);
         }
