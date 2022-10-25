@@ -92,12 +92,15 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
       LOG_WARN("sub query tuple get cell wrong");
       return false;
     }
+    if(left_cell->attr_type() == AttrType::NULLS || tmp_cell.attr_type() == AttrType::NULLS) {
+      continue;
+    }
     int cmp = left_cell->compare(tmp_cell);
     if (cmp != 0) {
       continue; 
     }
     exists = true;
-    break; 
+    break;
   }
   return exists;
 }

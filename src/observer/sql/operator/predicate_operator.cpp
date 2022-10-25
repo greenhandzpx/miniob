@@ -216,11 +216,15 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         TupleCell left_cell;
         left_expr->get_value(tuple, left_cell);
 
+        if (left_cell.attr_type() == AttrType::NULLS) {
+          return false;
+        }
+
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
         bool exists; 
         if (right_sub_query_expr) {
-          exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, nullptr);
+          exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, &left_cell);
         } else {
           auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
           TupleCell left_cell;
