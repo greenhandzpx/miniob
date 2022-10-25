@@ -503,8 +503,9 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
 
     } else if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP){
       values[i].type = AttrType::FLOATS;
-      values[i].data = new float;
-      *static_cast<float*>(values[i].data) = 0;
+      values[i].data = nullptr;
+      // values[i].data = new float;
+      // *static_cast<float*>(values[i].data) = 0;
 
     } else {
       size_t n = select_stmt->query_fields().size();
@@ -558,8 +559,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
     }
   }
 
-  int cnt = 0;
-
+  std::vector<int> divs(aggregation_ops.size());
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     // get current record
     // write to response
@@ -570,8 +570,6 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       break;
     }
 
-    cnt++;
-
     for (int i = 0; i < aggregation_ops.size(); ++i) {
       TupleCell cell;
 
@@ -581,14 +579,25 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
         break;
       }
 
+      if (cell.attr_type() == AttrType::NULLS) {
+        continue;
+      }
+      divs[i]++;
+
       AggregationOp aggregation_op = aggregation_ops[i];
       switch (aggregation_op) {
         case COUNT_OP: {
-          *static_cast<int *>(values[i].data) += 1;
+          // if (cell.attr_type() != AttrType::NULLS) {
+            *static_cast<int *>(values[i].data) += 1;
+          // }
         } break;
 
         case SUM_OP:
         case AVG_OP: {
+          // if (values[i].data == nullptr && cell.attr_type() != AttrType::NULLS) {
+          if (values[i].data == nullptr) {
+            values[i].data = new float(0);
+          }
           if (cell.attr_type() == AttrType::INTS) {
             *static_cast<float*>(values[i].data) += *reinterpret_cast<const int*>(cell.data());
           } else if (cell.attr_type() == AttrType::FLOATS) {
@@ -597,6 +606,7 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
             float tmp;
             string2float(cell.data(), &tmp);
             *static_cast<float*>(values[i].data) += tmp;
+          // } else if (cell.attr_type() != AttrType::NULLS) {
           } else {
             LOG_WARN("unsupported attr type");
             return RC::SCHEMA_FIELD_NAME_ILLEGAL;
@@ -676,11 +686,15 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
   }
 
   for (int i = 0; i < values.size(); ++i) {
+    if (values[i].data == nullptr) {
+      values[i].type = AttrType::NULLS;
+      continue;
+    }
     if (aggregation_ops[i] == AVG_OP) {
         if (values[i].type == AttrType::INTS) {
-          *static_cast<float*>(values[i].data) /= cnt;
+          *static_cast<float*>(values[i].data) /= divs[i];
         } else if (values[i].type == AttrType::FLOATS) {
-          *static_cast<float*>(values[i].data) /= cnt;
+          *static_cast<float*>(values[i].data) /= divs[i];
         } else {
           LOG_WARN("unsupported attr type");
           return RC::SCHEMA_FIELD_NAME_ILLEGAL;
@@ -758,6 +772,11 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       } else {
         ss << " | ";
       }
+
+      if (value.type == AttrType::NULLS) {
+        ss << "NULL";
+      }
+
       if (value.type == AttrType::INTS) {
         ss << *static_cast<int *>(value.data);
         delete static_cast<int *>(value.data);
@@ -775,7 +794,6 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         char buf[16] = {0};
         snprintf(buf,sizeof(buf),"%04d-%02d-%02d",value_int/10000, (value_int%10000)/100,value_int%100); // 注意这里月份和天数，不足两位时需要填充0
         ss << buf;
-
       }
     }
     ss << std::endl;
