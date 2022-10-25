@@ -99,10 +99,13 @@ typedef struct _Condition {
 
   int right_is_sub_query;
   int right_is_attr;   // TRUE if right-hand side is an attribute
+  int right_is_set;    // TRUE if right-hand side is a set(like (2, 4, 5, 9))
                        // 1时，操作符右边是属性名，0时，是属性值
-  RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
-  Value right_value;   // right-hand side value if right_is_attr = FALSE
   struct Selects *right_select; // right-hand side sub query(i.e. select query)
+  RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
+  Value right_value_set[MAX_NUM];
+  size_t right_value_set_num;
+  Value right_value;   // right-hand side value if right_is_attr = FALSE
 } Condition;
 
 // struct of select
@@ -252,7 +255,8 @@ void value_init_null(Value *value);
 void value_destroy(Value *value);
 
 void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select);
+    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+    size_t value_set_num);
 void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_nullable);

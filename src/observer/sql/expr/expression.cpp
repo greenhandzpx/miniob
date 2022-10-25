@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/expr/expression.h"
+#include "sql/expr/tuple_cell.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/project_operator.h"
 #include "sql/operator/table_scan_operator.h"
@@ -104,3 +105,20 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
 // void SubQueryExpr::add_parent_tuple(Tuple *parent_tuple) {
 //   parent_tuple_ = parent_tuple;
 // }
+
+
+bool ValueSetExpr::check_contain(TupleCell &other_tuple_cell) const {
+  for (auto &value: value_set_) {
+    TupleCell tmp = TupleCell(value.type, (char *)value.data);
+    if (other_tuple_cell.compare(tmp) == 0) {
+      printf("value set expr: find an equal value\n");
+      return true;
+    }
+  }
+  return false;
+}
+bool ValueSetExpr::check_contain(Value &other_value) const {
+  // TODO
+  assert(false);
+  return true;
+}

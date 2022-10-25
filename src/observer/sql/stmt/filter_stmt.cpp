@@ -181,7 +181,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
       ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
       right = new ValueExpr(values[0]);
 
-
+      
     } else {
 
       // if the sub query is normal select, compute the tuple set every time
@@ -189,6 +189,16 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
       right = new SubQueryExpr(select_stmt); 
     }
+
+  } else if (condition.right_is_set) {
+
+    // select * from t where id in (1, 3, 4, 6);
+
+    std::vector<Value> value_set(condition.right_value_set_num);
+    for (int i = 0; i < value_set.size(); ++i) {
+      value_set[i] = condition.right_value_set[i];
+    }
+    right = new ValueSetExpr(value_set);
 
   } else {
 

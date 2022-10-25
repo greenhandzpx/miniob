@@ -92,13 +92,18 @@ int value_init_date(Value* value, const char* v) {
 }
 
 void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select)
+    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+    size_t value_set_num)
+// void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
+//     int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select)
 {
+  printf("condition init: type %d\n", condition_type);
   condition->condition_type = condition_type;
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
   condition->right_is_attr = right_is_attr;
   condition->right_is_sub_query = right_is_sub_query;
+  condition->right_is_set = right_is_set;
 
   if (condition_type != Exists && condition_type != NotExists) {
     if (left_is_attr) {
@@ -113,13 +118,18 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
     condition->right_attr = *right_attr;
   } else if (right_is_sub_query) {
     condition->right_select = right_select;
+  } else if (right_is_set) {
+    condition->right_value_set_num = value_set_num;
+    for (int i = 0; i < value_set_num; ++i) {
+      condition->right_value_set[i] = value_set[i];
+    }
   } else {
     condition->right_value = *right_value;
   }
 }
 void condition_destroy(Condition *condition)
 {
-  if (condition->condition_type != Exists ||
+  if (condition->condition_type != Exists &&
       condition->condition_type != NotExists) {
     if (condition->left_is_attr) {
       relation_attr_destroy(&condition->left_attr);
