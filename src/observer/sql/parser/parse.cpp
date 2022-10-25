@@ -140,7 +140,9 @@ void condition_destroy(Condition *condition)
   
   if (condition->right_is_attr) {
     relation_attr_destroy(&condition->right_attr);
-  } else if (!condition->right_is_sub_query) {
+  } else if (condition->right_is_sub_query) {
+  } else if (condition->right_is_set) {
+  }  else {
     value_destroy(&condition->right_value);
   }
 }
