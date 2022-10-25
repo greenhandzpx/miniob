@@ -120,6 +120,7 @@ public:
   }
 
   bool check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell);
+  bool check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell);
 
   // void add_parent_tuple(Tuple *parent_tuple);
 private:
@@ -147,6 +148,7 @@ public:
   }
 
   bool check_contain(TupleCell &other_tuple_cell) const;
+  bool check_not_contain(TupleCell &other_tuple_cell) const;
   bool check_contain(Value &other_value) const;
 private:
   std::vector<Value> value_set_;
