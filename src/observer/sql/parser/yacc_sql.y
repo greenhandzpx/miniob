@@ -140,6 +140,10 @@ ParserContext *get_context(yyscan_t scanner)
 		NOT
 		UNIQUE
 
+		ORDER
+		BY
+		ASC
+
 %union {
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -472,7 +476,7 @@ select:
 	select_query SEMICOLON;
 
 select_query:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where
+    SELECT select_attr FROM ID rel_list where order
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -643,6 +647,52 @@ where:
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
 			}
     ;
+
+order:
+	| ORDER BY order_attr {
+
+	}
+	;
+
+order_attr:
+	ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $2);
+		}
+  	| ID DOT ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $4);
+		}
+    ;
+
+order_attr_list:
+    /* empty */
+    | COMMA ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $3);
+      }
+    | COMMA ID DOT ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $5);
+  	  }
+  	;
+
+asc: 
+	{
+		$$ = 1;
+	}
+	| ASC {
+		$$ = 1;
+	}
+	| DESC {
+		$$ = 0;
+	}
+
+
 condition_list:
     /* empty */
     | AND condition condition_list {
