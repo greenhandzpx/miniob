@@ -69,6 +69,12 @@ public:
   */
   static RC aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper);
 
+  // order 老的 需要取所有tuple
+  // static RC order_comp(Tuple *tuple1, Tuple *tuple2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp);
+
+  // order 存所有tuplecell的版本
+  static RC order_comp(std::vector<TupleCell> &cells1, std::vector<TupleCell> &cells2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp);
+
 protected:
 private:
   Stage *default_storage_stage_ = nullptr;

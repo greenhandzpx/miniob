@@ -803,11 +803,97 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     // normal select 
     
     print_tuple_header(ss, project_oper);
+    // order by
     Tuple *tuple;
-    while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
-      printf("do_select: get a tuple\n");
-      tuple_to_string(ss, *tuple);
-      ss << std::endl;
+    if (select_stmt->order()) {
+      std::vector<std::pair<Field, bool>> order_fields = select_stmt->order_fields();
+      std::vector<std::pair<std::string, std::vector<TupleCell>>> ss_tuples;
+      while ((rc = normal_select_handler(select_stmt,tuple, project_oper)) == RC::SUCCESS) {
+        std::stringstream tmpss;
+        tuple_to_string(tmpss, *tuple);
+        tmpss << std::endl;
+        // 记录比较所需的tuplecell
+        std::vector<TupleCell> tmpcell;
+        for (const auto &fb : order_fields) {
+          Field field = fb.first;
+          TupleCell cell;
+          if (tuple->find_cell(field, cell) != RC::SUCCESS) {
+            return RC::GENERIC_ERROR;
+          }
+          tmpcell.push_back(cell);
+        }
+        ss_tuples.push_back(std::make_pair(tmpss.str(), tmpcell));
+      }
+      
+      auto size = ss_tuples.size();
+      for (int i = 0; i < size; ++i) {
+        auto candidate_it = ss_tuples.begin();
+        // std::vector<std::pair<std::string, std::vector<TupleCell>>>::iterator candidate_it = ss_tuples.begin();
+        for (auto it = ++ss_tuples.begin(); it != ss_tuples.end(); it++) {
+          int cmp;
+          if (order_comp(candidate_it->second, it->second, order_fields, cmp) != RC::SUCCESS) {
+            return RC::GENERIC_ERROR;
+          }
+          if (cmp > 0) {
+            candidate_it = it;
+          }
+        }
+        ss << candidate_it->first;
+        ss_tuples.erase(candidate_it);
+      }
+
+      // for (int c = 0; c < size; ++c) {
+      //   int candidate = 0;
+      //   for (int i = 1; i < ss_tuples.size(); ++i) {
+      //     int cmp;
+      //     if (order_comp(ss_tuples[candidate].second, ss_tuples[i].second, order_fields, cmp) != RC::SUCCESS) {
+      //       return RC::GENERIC_ERROR;
+      //     }
+      //     if (cmp > 0) {
+      //       candidate = i;
+      //     }
+      //   }
+      //   ss << ss_tuples[candidate].first;
+      //   ss_tuples.erase(ss_tuples.begin()+candidate);
+      // }
+
+      // std::vector<Tuple*> tps;
+      // while (rc == RC::SUCCESS) {
+      //   Tuple tmp;
+      //   if ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
+      //     tmp = *tuple;
+      //     tps.emplace_back(&tmp);
+      //     printf("%p\n", &tmp);
+      //   } else {
+      //     break;
+      //   }
+      // }
+      // int size = tps.size();
+      // int cmp;
+      // for (i = 0; i < size; ++i) {
+      //   Tuple *candidate = tps[0];
+      //   auto candidate_it = tps.begin();
+      //   for (auto it = ++tps.begin(); it != tps.end(); tps++) {
+      //     // cmp <= 0选前，否则选后
+      //     if ((rc = order_comp(candidate, *it, select_stmt->order_fields(), cmp)) != RC::SUCCESS) {
+      //       session_event->set_response("FAILURE");
+      //       return rc;
+      //     }
+      //     if (cmp > 0) {
+      //       candidate = *it;
+      //       candidate_it = it;
+      //     }
+      //   }
+      //   tuple_to_string(ss, *candidate);
+      //   ss << std::endl;
+      //   tps.erase(candidate_it);
+      // }
+    } else {
+      while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
+        printf("do_select: get a tuple\n");
+        tuple_to_string(ss, *tuple);
+        ss << std::endl;
+      }
     }
   }
 
@@ -815,6 +901,37 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   return rc;
 }
 
+RC ExecuteStage::order_comp(std::vector<TupleCell> &cells1, std::vector<TupleCell> &cells2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp) {
+  auto size = order_fields.size();
+  for (int i = 0; i < size; i++) {
+    if ((cmp = cells1[i].compare(cells2[i])) != 0) {
+      if (!order_fields[i].second) {
+        cmp = -cmp;
+      }
+      return RC::SUCCESS;
+    }
+  }
+  cmp = 0;
+  return RC::SUCCESS;
+}
+
+// RC ExecuteStage::order_comp(Tuple *tuple1, Tuple *tuple2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp) {
+//   TupleCell cell1, cell2;
+//   for (const auto & fb : order_fields) {
+//     Field field = fb.first;
+//     bool is_esc = fb.second;
+//     if (tuple1->find_cell(field, cell1) != RC::SUCCESS || tuple2->find_cell(field, cell2) != RC::SUCCESS) {
+//       return RC::GENERIC_ERROR;
+//     }
+//     if ((cmp = cell1.compare(cell2)) != 0) {
+//       if (!is_esc) {
+//         cmp = -cmp;  
+//       }
+//       return RC::SUCCESS;
+//     }
+//   }
+//   return RC::SUCCESS;
+// }
 
 RC ExecuteStage::do_help(SQLStageEvent *sql_event)
 {
