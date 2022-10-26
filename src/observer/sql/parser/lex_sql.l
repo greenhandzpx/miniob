@@ -79,6 +79,9 @@ QUOTE            [\'\"]
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]      RETURN_TOKEN(NULLABLE); // NULLABLE
 [Nn][Uu][Ll][Ll]                      RETURN_TOKEN(NULLVALUE); // 返回NULL值
 [Ii][Ss]                              RETURN_TOKEN(IS); // 返回is.暂用于 is null, is not null
+[Oo][Rr][Dd][Ee][Rr]                  RETURN_TOKEN(ORDER); // order
+[Bb][Yy]                              RETURN_TOKEN(BY);   // by
+[Aa][Ss][Cc]                          RETURN_TOKEN(ASC);
 
 [Cc][Oo][Uu][Nn][Tt]                                 RETURN_TOKEN(COUNT);
 [Aa][Vv][Gg]                                         RETURN_TOKEN(AVG);

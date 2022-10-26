@@ -140,6 +140,10 @@ ParserContext *get_context(yyscan_t scanner)
 		NOT
 		UNIQUE
 
+		ORDER
+		BY
+		ASC
+
 %union {
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -472,7 +476,7 @@ select:
 	select_query SEMICOLON;
 
 select_query:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where
+    SELECT select_attr FROM ID rel_list where order
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -643,6 +647,67 @@ where:
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
 			}
     ;
+
+order:
+	{
+		selects_set_order(&CONTEXT->ssql->sstr.selection, 0);
+	}
+	| ORDER BY order_attr {
+		selects_set_order(&CONTEXT->ssql->sstr.selection, 1);
+	}
+	;
+
+order_attr:
+	ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+		}
+  	| ID DOT ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+		}
+	| ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
+		}
+	| ID DOT ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
+		}
+    ;
+
+order_attr_list:
+    /* empty */
+    | COMMA ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+      }
+    | COMMA ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
+      }
+    | COMMA ID DOT ID asc order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+  	  }
+    | COMMA ID DOT ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
+  	  }
+  	;
+
+asc:
+	| ASC
+	;
+
 condition_list:
     /* empty */
     | AND condition condition_list {

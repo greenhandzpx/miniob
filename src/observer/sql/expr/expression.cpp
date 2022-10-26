@@ -127,6 +127,77 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
   // return exists;
 }
 
+bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell) {
+
+  printf("sub query: start query\n");
+
+  std::vector<Tuple*> tuple_set;
+  RC rc;
+  PredicateOperator pred_oper(select_stmt_->filter_stmt());
+
+  std::vector<Operator *> scan_opers(select_stmt_->tables().size());
+  for (int i = 0; i< scan_opers.size(); ++i) {
+    printf("add scan oper %d\n", i);
+    scan_opers[i] = ExecuteStage::try_to_create_index_scan_operator(select_stmt_->filter_stmt());
+    if (nullptr == scan_opers[i]) {
+      // TODO memory leak
+      scan_opers[i] = new TableScanOperator(select_stmt_->tables()[i]);
+    }
+    pred_oper.add_child(scan_opers[i]);
+  }
+
+  pred_oper.set_parent_tuple(parent_tuple);
+
+  ProjectOperator project_oper;
+  project_oper.add_child(&pred_oper);
+
+  bool is_single_table = select_stmt_->tables().size() == 1;
+
+  for (const Field &field : select_stmt_->query_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  }
+  rc = project_oper.open();
+
+  Tuple *tuple;
+  while ((rc = ExecuteStage::normal_select_handler(select_stmt_, tuple, project_oper)) == RC::SUCCESS) {
+    printf("sub_query:do_select: get a tuple\n");
+    tuple_set.push_back(tuple);
+  }
+
+  if (!check_contain) {
+    // check exist
+    return !tuple_set.empty();
+  }
+
+  // check contain
+  assert(left_cell != nullptr);
+  bool exists = false;
+  for (Tuple *tmp_tuple: tuple_set) {
+    // auto tmp_tuple = dynamic_cast<ProjectTuple*>(dummy_tuple);
+    if (tmp_tuple->cell_num() != 1) {
+      // the sub query must select only one field
+      // TODO: not sure
+      return false;
+    }
+    TupleCell tmp_cell;
+    if (tmp_tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+      LOG_WARN("sub query tuple get cell wrong");
+      return false;
+    }
+    if(tmp_cell.attr_type() == AttrType::NULLS) {
+      return false;
+    }
+    int cmp = left_cell->compare(tmp_cell);
+    if (cmp == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // void SubQueryExpr::add_parent_tuple(Tuple *parent_tuple) {
 //   parent_tuple_ = parent_tuple;
 // }
@@ -135,9 +206,24 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
 bool ValueSetExpr::check_contain(TupleCell &other_tuple_cell) const {
   for (auto &value: value_set_) {
     TupleCell tmp = TupleCell(value.type, (char *)value.data);
+    if (tmp.attr_type() == AttrType::NULLS) {
+      continue;
+    }
     if (other_tuple_cell.compare(tmp) == 0) {
       printf("value set expr: find an equal value\n");
       return true;
+    }
+  }
+  return false;
+}
+
+
+bool ValueSetExpr::check_not_contain(TupleCell &other_tuple_cell) const {
+  for (auto &value: value_set_) {
+    TupleCell tmp = TupleCell(value.type, (char *)value.data);
+    if (tmp.attr_type() == AttrType::NULLS || other_tuple_cell.compare(tmp) == 0) {
+      printf("value set expr: find an equal value\n");
+      return false;
     }
   }
   return false;
