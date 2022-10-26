@@ -904,6 +904,25 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 RC ExecuteStage::order_comp(std::vector<TupleCell> &cells1, std::vector<TupleCell> &cells2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp) {
   auto size = order_fields.size();
   for (int i = 0; i < size; i++) {
+    if (cells1[i].attr_type() == AttrType::NULLS) {
+      if (cells2[i].attr_type() == AttrType::NULLS) {
+        continue;
+      }
+      if (order_fields[i].second) {
+        cmp = 1;
+      } else {
+        cmp = -1;
+      }
+      break;
+    }
+    if (cells2[i].attr_type() == AttrType::NULLS) {
+      if (order_fields[i].second) {
+        cmp = -1;
+      } else {
+        cmp = 1;
+      }
+      break;
+    }
     if ((cmp = cells1[i].compare(cells2[i])) != 0) {
       if (!order_fields[i].second) {
         cmp = -cmp;
