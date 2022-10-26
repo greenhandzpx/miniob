@@ -733,6 +733,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     pred_oper.add_child(scan_opers[i]);
   }
 
+
   ProjectOperator project_oper;
   project_oper.add_child(&pred_oper);
 
@@ -747,6 +748,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   rc = project_oper.open();
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open operator");
+    for (int i = 0; i < scan_opers.size(); ++i) {
+      delete scan_opers[i];
+    }
     return rc;
   }
 
@@ -761,6 +765,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     std::vector<Value> values(select_stmt->aggregation_ops().size());
     printf("select aggregation: op size %zu\n", values.size());
     if (RC::SUCCESS != (rc = aggregation_select_handler(select_stmt, values, project_oper))) {
+      for (int i = 0; i < scan_opers.size(); ++i) {
+        delete scan_opers[i];
+      }
       return rc;
     }
     
@@ -899,6 +906,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   }
 
   session_event->set_response(ss.str());
+  for (int i = 0; i < scan_opers.size(); ++i) {
+    delete scan_opers[i];
+  }
   return rc;
 }
 
