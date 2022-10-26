@@ -198,8 +198,12 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 }
 
 void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc) {
-  selects->order_attrs[selects->order_attr_num] = rel_attr;
+  selects->order_attrs[selects->order_attr_num] = *rel_attr;
   selects->is_asc[selects->order_attr_num++] = is_asc;
+}
+
+void selects_set_order(Selects *selects, int order) {
+  selects->is_order = order;
 }
 
 void selects_destroy(Selects *selects)

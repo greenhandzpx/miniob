@@ -649,8 +649,11 @@ where:
     ;
 
 order:
+	{
+		selects_set_order(&CONTEXT->ssql->sstr.selection, 0);
+	}
 	| ORDER BY order_attr {
-
+		selects_set_order(&CONTEXT->ssql->sstr.selection, 1);
 	}
 	;
 
@@ -658,12 +661,22 @@ order_attr:
 	ID asc order_attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
-			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $2);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
   	| ID DOT ID asc order_attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
-			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $4);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+		}
+	| ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
+		}
+	| ID DOT ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
 		}
     ;
 
@@ -672,26 +685,28 @@ order_attr_list:
     | COMMA ID asc order_attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
-			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $3);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+      }
+    | COMMA ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
       }
     | COMMA ID DOT ID asc order_attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
-			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, $5);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 1);
+  	  }
+    | COMMA ID DOT ID DESC order_attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_orderattr(&CONTEXT->ssql->sstr.selection, &attr, 0);
   	  }
   	;
 
-asc: 
-	{
-		$$ = 1;
-	}
-	| ASC {
-		$$ = 1;
-	}
-	| DESC {
-		$$ = 0;
-	}
-
+asc:
+	| ASC
+	;
 
 condition_list:
     /* empty */
