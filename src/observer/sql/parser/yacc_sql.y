@@ -826,6 +826,7 @@ condition:
 		Condition condition;
 		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
@@ -836,6 +837,7 @@ condition:
 		Condition condition;
 		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
