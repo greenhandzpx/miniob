@@ -272,12 +272,46 @@ void deletes_destroy(Deletes *deletes)
   deletes->relation_name = nullptr;
 }
 
-void updates_init(Updates *updates, const char *relation_name, const char *attribute_name, Value *value,
-    Condition conditions[], size_t condition_num)
+
+// ***********************************************upselect********************************************************
+
+// void updates_init(Updates *updates, const char *relation_name, const char *attribute_name, Value *value,
+//     Condition conditions[], size_t condition_num)
+// {
+//   updates->relation_name = strdup(relation_name);
+//   updates->attribute_name = strdup(attribute_name);
+//   updates->value = *value;
+
+//   assert(condition_num <= sizeof(updates->conditions) / sizeof(updates->conditions[0]));
+//   for (size_t i = 0; i < condition_num; i++) {
+//     updates->conditions[i] = conditions[i];
+//   }
+//   updates->condition_num = condition_num;
+// }
+
+void updates_init(Updates *updates, const char *relation_name, const char* attribute_names[], Value* values, size_t values_num,
+    Condition conditions[], size_t condition_num, Selects *select_vec[])
 {
   updates->relation_name = strdup(relation_name);
-  updates->attribute_name = strdup(attribute_name);
-  updates->value = *value;
+
+  updates->attribute_names = (char**)malloc(values_num * sizeof(char*));
+  updates->values = (Value*)malloc(values_num * sizeof(Value));
+  updates->select_vec = (Selects**)malloc(values_num * sizeof(Selects*));
+  for (size_t i = 0; i < values_num; i++) {
+    updates->select_vec[i] = nullptr;
+  }
+
+  updates->values_num = values_num;
+  
+  
+  for (size_t i = 0; i < values_num; i++) {
+    updates->attribute_names[i] = strdup(attribute_names[i]);
+    if (select_vec[i] != nullptr) {
+      updates->select_vec[i] = select_vec[i];
+    } else {
+      updates->values[i] = values[i];
+    }
+  }
 
   assert(condition_num <= sizeof(updates->conditions) / sizeof(updates->conditions[0]));
   for (size_t i = 0; i < condition_num; i++) {
@@ -286,20 +320,50 @@ void updates_init(Updates *updates, const char *relation_name, const char *attri
   updates->condition_num = condition_num;
 }
 
+
+
+// void updates_destroy(Updates *updates)
+// {
+//   free(updates->relation_name);
+//   free(updates->attribute_name);
+//   updates->relation_name = nullptr;
+//   updates->attribute_name = nullptr;
+
+//   value_destroy(&updates->value);
+
+//   for (size_t i = 0; i < updates->condition_num; i++) {
+//     condition_destroy(&updates->conditions[i]);
+//   }
+//   updates->condition_num = 0;
+// }
+
+
 void updates_destroy(Updates *updates)
 {
   free(updates->relation_name);
-  free(updates->attribute_name);
   updates->relation_name = nullptr;
-  updates->attribute_name = nullptr;
 
-  value_destroy(&updates->value);
+  for (size_t i = 0; i < updates->values_num; i++) {
+    free(updates->attribute_names[i]);
+  }
+
+  free(updates->values);
+  updates->values = nullptr;
+  free(updates->select_vec);
+  updates->select_vec = nullptr;
+  free(updates->attribute_names);
+  updates->attribute_names = nullptr;
 
   for (size_t i = 0; i < updates->condition_num; i++) {
     condition_destroy(&updates->conditions[i]);
   }
   updates->condition_num = 0;
 }
+
+
+
+
+// ***********************************************upselect********************************************************
 
 void create_table_append_attribute(CreateTable *create_table, AttrInfo *attr_info)
 {

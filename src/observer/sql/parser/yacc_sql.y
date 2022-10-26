@@ -20,6 +20,10 @@ typedef struct ParserContext {
   size_t value_num[MAX_NUM];       // Length of values
   Value tuples[MAX_NUM][MAX_NUM];  // values to insert
 
+  Selects* upselect_vec[MAX_NUM];  // upselect
+  size_t upselect_num;             // upselect
+  char* attribute_name[MAX_NUM];   // upselect
+
   size_t value_length;
   Value values[MAX_NUM];      
   Condition conditions[MAX_NUM];
@@ -458,15 +462,35 @@ delete:		/*  delete 语句的语法解析树*/
     }
     ;
 update:			/*  update 语句的语法解析树*/
-    UPDATE ID SET ID EQ value where SEMICOLON
+    UPDATE ID SET assign assign_list where SEMICOLON
 		{
 			CONTEXT->ssql->flag = SCF_UPDATE;//"update";
-			Value *value = &CONTEXT->values[0];
-			updates_init(&CONTEXT->ssql->sstr.update, $2, $4, value, 
-					CONTEXT->conditions, CONTEXT->condition_length);
+			updates_init(&CONTEXT->ssql->sstr.update, $2, CONTEXT->attribute_name, CONTEXT->values, CONTEXT->upselect_num,
+					CONTEXT->conditions, CONTEXT->condition_length, CONTEXT->upselect_vec);
 			CONTEXT->condition_length = 0;
+			CONTEXT->value_length = 0;
+			CONTEXT->upselect_num = 0;
 		}
     ;
+
+assign:         /*   assignment in update*/
+	ID EQ value {
+		CONTEXT->upselect_num++;
+		CONTEXT->attribute_name[CONTEXT->value_length - 1] = $1;
+	}
+	| ID EQ sub_query {
+		CONTEXT->upselect_num++;
+		CONTEXT->value_length++;
+		CONTEXT->attribute_name[CONTEXT->value_length - 1] = $1;
+		CONTEXT->upselect_vec[CONTEXT->value_length - 1] = &CONTEXT->sub_query->sstr.selection;
+	}
+	;
+
+
+assign_list:
+	/* empty */
+	| COMMA assign assign_list;
+
 
 select:
 	select_query SEMICOLON;
