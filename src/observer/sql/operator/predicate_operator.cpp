@@ -65,7 +65,7 @@ RC PredicateOperator::next()
     if (parent_tuple_ != nullptr) {
       tuple_stack_.push_back(parent_tuple_);
     }
-    printf("get a new composite tuple\n");
+    // printf("get a new composite tuple\n");
     current_tuple_ = new CompositeTuple(tuple_stack_);
 
     if (parent_tuple_ != nullptr) {
@@ -108,7 +108,9 @@ RC PredicateOperator::next_when_multi_tables() {
   int i = n - 1;
   tuple_stack_.pop_back();
   while (i >= 0 && (rc = children_[i]->next()) != RC::SUCCESS) {
-    printf("nothing in this node, i: %d\n", i);
+    // if (i <= 3) {
+    //   printf("nothing in this node, i: %d\n", i);
+    // }
     tuple_stack_.pop_back();
     children_[i]->close();
     --i;

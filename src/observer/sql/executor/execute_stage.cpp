@@ -812,7 +812,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     print_tuple_header(ss, project_oper);
     Tuple *tuple;
     while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
-      printf("do_select: get a tuple\n");
+      // printf("do_select: get a tuple\n");
       tuple_to_string(ss, *tuple);
       ss << std::endl;
     }
