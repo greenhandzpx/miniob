@@ -215,6 +215,11 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
       case NotContain: {
         TupleCell left_cell;
         left_expr->get_value(tuple, left_cell);
+        
+        // 左值为null,返回false
+        if (left_cell.attr_type() == AttrType::NULLS) {
+          return false;
+        }
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
