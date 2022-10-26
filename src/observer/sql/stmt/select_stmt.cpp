@@ -167,7 +167,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   // collect order fields in `order` statement
   std::vector<std::pair<Field, bool>> order_fields;
   if (order) {
-    for (int i = 0; i < select_sql.order_attr_num; i++) {
+    for (int i = select_sql.order_attr_num - 1; i >= 0; i--) {
       const RelAttr &relation_attr = select_sql.order_attrs[i];
       bool asc = select_sql.is_asc[i] == 1 ? true : false;
       if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
