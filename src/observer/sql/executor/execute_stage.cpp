@@ -830,7 +830,8 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         auto candidate_it = ss_tuples.begin();
         // std::vector<std::pair<std::string, std::vector<TupleCell>>>::iterator candidate_it = ss_tuples.begin();
         for (auto it = ++ss_tuples.begin(); it != ss_tuples.end(); it++) {
-          int cmp;
+          int cmp = 0;
+          // cmp <= 0选前，否则选后
           if (order_comp(candidate_it->second, it->second, order_fields, cmp) != RC::SUCCESS) {
             return RC::GENERIC_ERROR;
           }
@@ -905,23 +906,20 @@ RC ExecuteStage::order_comp(std::vector<TupleCell> &cells1, std::vector<TupleCel
   auto size = order_fields.size();
   for (int i = 0; i < size; i++) {
     if (cells1[i].attr_type() == AttrType::NULLS) {
-      if (cells2[i].attr_type() == AttrType::NULLS) {
-        continue;
-      }
       if (order_fields[i].second) {
-        cmp = 1;
+        cmp = -1111;
       } else {
-        cmp = -1;
+        cmp = 1111;
       }
-      break;
+      return RC::SUCCESS;
     }
     if (cells2[i].attr_type() == AttrType::NULLS) {
       if (order_fields[i].second) {
-        cmp = -1;
+        cmp = 2222;
       } else {
-        cmp = 1;
+        cmp = -2222;
       }
-      break;
+      return RC::SUCCESS;
     }
     if ((cmp = cells1[i].compare(cells2[i])) != 0) {
       if (!order_fields[i].second) {
