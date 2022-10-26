@@ -13,6 +13,9 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/log/log.h"
+#include "sql/executor/execute_stage.h"
+#include "sql/expr/expression.h"
+#include "sql/expr/tuple.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/parser/parse_defs.h"
 #include "storage/record/record.h"
@@ -58,18 +61,20 @@ RC PredicateOperator::next()
   // }
 
   while (RC::SUCCESS == (rc = next_when_multi_tables())) {
-    if (current_tuple_ != nullptr) {
-      // free last current tuple
-      delete current_tuple_;
-    }
+    // if (current_tuple_ != nullptr) {
+    //   // free last current tuple
+    //   delete current_tuple_;
+    // }
     if (parent_tuple_ != nullptr) {
-      tuple_stack_.push_back(parent_tuple_);
+      current_tuple_->push_back(parent_tuple_);
+      // tuple_stack_.push_back(parent_tuple_);
     }
     // printf("get a new composite tuple\n");
-    current_tuple_ = new CompositeTuple(tuple_stack_);
+    // current_tuple_ = new CompositeTuple(tuple_stack_);
 
     if (parent_tuple_ != nullptr) {
-      tuple_stack_.pop_back();
+      current_tuple_->pop_back();
+      // tuple_stack_.pop_back();
     }
     // Tuple *tuple = current_tuple();
     if (nullptr == current_tuple_) {
@@ -86,9 +91,17 @@ RC PredicateOperator::next()
 }
 
 RC PredicateOperator::next_when_multi_tables() {
+  if (is_over_) {
+    return RC::RECORD_EOF;
+  }
+
+  if (has_accelerated_) {
+    return RC::SUCCESS;
+  }
+
   RC rc = RC::SUCCESS;
 
-  if (tuple_stack_.size() != children_.size()) {
+  if (tuple_stack_.size() < children_.size()) {
     // this must be the first time to call 
     if (tuple_stack_.size() != 0) {
       LOG_WARN("something error happens");
@@ -100,18 +113,22 @@ RC PredicateOperator::next_when_multi_tables() {
         return RC::INTERNAL;
       }
       tuple_stack_.push_back(child->current_tuple());
+      stk_top_++;
     }
+    current_tuple_ = new CompositeTuple(tuple_stack_);
+
     return rc;
   }
 
   int n = children_.size();
   int i = n - 1;
-  tuple_stack_.pop_back();
+  // tuple_stack_.pop_back();
   while (i >= 0 && (rc = children_[i]->next()) != RC::SUCCESS) {
     // if (i <= 3) {
     //   printf("nothing in this node, i: %d\n", i);
     // }
-    tuple_stack_.pop_back();
+    // tuple_stack_.pop_back();
+    stk_top_--;
     children_[i]->close();
     --i;
   }
@@ -128,18 +145,21 @@ RC PredicateOperator::next_when_multi_tables() {
     return rc;
   }
 
-  tuple_stack_.push_back(children_[i]->current_tuple());
+  stk_top_++;
+  // tuple_stack_.push_back(children_[i]->current_tuple());
   ++i;
   for (; i < n; ++i) {
     children_[i]->open();
     assert((rc = children_[i]->next()) == RC::SUCCESS);
-    tuple_stack_.push_back(children_[i]->current_tuple());
+    // tuple_stack_.push_back(children_[i]->current_tuple());
+    stk_top_++;
   }
   return rc;
 }
 
-bool PredicateOperator::do_predicate(Tuple &tuple)
+bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 {
+  has_accelerated_ = false;
   if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
     return true;
   }
@@ -155,8 +175,17 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         CompOp comp = filter_unit->comp();
         TupleCell left_cell;
         TupleCell right_cell;
-        left_expr->get_value(tuple, left_cell);
-        right_expr->get_value(tuple, right_cell);
+        int left_index = -1, right_index = -1;
+        if (left_expr->type() == ExprType::FIELD) {
+          tuple.find_cell(dynamic_cast<FieldExpr*>(left_expr)->field(), left_cell, left_index);
+        } else {
+          left_expr->get_value(tuple, left_cell);
+        }
+        if (right_expr->type() == ExprType::FIELD) {
+          tuple.find_cell(dynamic_cast<FieldExpr*>(right_expr)->field(), right_cell, right_index);
+        } else {
+          right_expr->get_value(tuple, right_cell);
+        }
 
         // is null 和 is not null 的逻辑判断
         if (left_cell.attr_type() == AttrType::NULLS || right_cell.attr_type() == AttrType::NULLS) {
@@ -209,6 +238,63 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         } break;
         }
         if (!filter_result) {
+          if (left_index != -1 || right_index != -1) {
+            int target_index = left_index > right_index ? left_index : right_index;
+
+            has_accelerated_ = true;
+
+            // if (target_index == children_.size() - 1) {
+            //   return false;
+            // } else {
+            //   has_accelerated_ = true; 
+            // }
+            // printf("hhh\n");
+            // tuple_to_string(std::cout, *current_tuple_);
+            // std::cout << std::endl;
+            // if (target_index == 1) {
+            //   printf("hhh\n");
+            //   tuple_to_string(std::cout, *current_tuple_);
+            //   std::cout << std::endl;
+            // }
+            int tmp = target_index;
+            int n = children_.size();
+            RC rc;
+            for (int i = tmp + 1; i < children_.size(); ++i) {
+              // printf("close %d\n", i);
+              children_[i]->close();
+            }
+            while (tmp >= 0 && (rc = children_[tmp]->next()) != RC::SUCCESS) {
+              // printf("no value tmp %d\n", tmp);
+              children_[tmp]->close();
+              --tmp;
+            }
+            if (tmp < 0) {
+              for (int i = 0; i < children_.size(); ++i) {
+                children_[i]->open();
+              }
+              is_over_ = true;
+              return false;
+            }
+            ++tmp;
+            for (; tmp < n; ++tmp) {
+              children_[tmp]->open();
+              // printf("open %d\n", tmp);
+              assert((rc = children_[tmp]->next()) == RC::SUCCESS);
+              while((rc = children_[tmp]->next()) == RC::SUCCESS);
+              children_[tmp]->close();
+              children_[tmp]->open();
+              children_[tmp]->next();
+            }
+            // printf("ddd\n");
+            // tuple_to_string(std::cout, *current_tuple_);
+            // std::cout << std::endl;
+            // if (children_[target_index]->next() == RC::SUCCESS) {
+            //   for (int i = target_index + 1; i < children_.size(); ++i) {
+            //     children_[i]->close();
+            //     children_[i]->open();
+            //   }
+            // }
+          }          
           return false;
         }
       } break;
