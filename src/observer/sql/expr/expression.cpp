@@ -36,7 +36,7 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
 
   printf("sub query: start query\n");
 
-  std::vector<Tuple*> tuple_set;
+  // std::vector<Tuple*> tuple_set;
   RC rc;
   PredicateOperator pred_oper(select_stmt_->filter_stmt());
 
@@ -69,37 +69,59 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
   Tuple *tuple;
   while ((rc = ExecuteStage::normal_select_handler(select_stmt_, tuple, project_oper)) == RC::SUCCESS) {
     printf("sub_query:do_select: get a tuple\n");
-    tuple_set.push_back(tuple);
-  }
+    // tuple_set.push_back(tuple);
+    if (!check_contain) {
+      // check exist
+      return true;
+    }
 
-  if (!check_contain) {
-    // check exist
-    return !tuple_set.empty();
-  }
-
-  // check contain
-  assert(left_cell != nullptr);
-  bool exists = false;
-  for (Tuple *tmp_tuple: tuple_set) {
-    // auto tmp_tuple = dynamic_cast<ProjectTuple*>(dummy_tuple);
-    if (tmp_tuple->cell_num() != 1) {
+    // check contain
+    if (tuple->cell_num() != 1) {
       // the sub query must select only one field
       // TODO: not sure
       return false;
     }
     TupleCell tmp_cell;
-    if (tmp_tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+    if (tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
       LOG_WARN("sub query tuple get cell wrong");
       return false;
     }
     int cmp = left_cell->compare(tmp_cell);
-    if (cmp != 0) {
-      continue; 
+    if (cmp == 0) {
+      return true;
     }
-    exists = true;
-    break; 
   }
-  return exists;
+  
+  return false;
+
+  // if (!check_contain) {
+  //   // check exist
+  //   return !tuple_set.empty();
+  // }
+
+  // // check contain
+  // assert(left_cell != nullptr);
+  // bool exists = false;
+  // for (Tuple *tmp_tuple: tuple_set) {
+  //   // auto tmp_tuple = dynamic_cast<ProjectTuple*>(dummy_tuple);
+  //   if (tmp_tuple->cell_num() != 1) {
+  //     // the sub query must select only one field
+  //     // TODO: not sure
+  //     return false;
+  //   }
+  //   TupleCell tmp_cell;
+  //   if (tmp_tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+  //     LOG_WARN("sub query tuple get cell wrong");
+  //     return false;
+  //   }
+  //   int cmp = left_cell->compare(tmp_cell);
+  //   if (cmp != 0) {
+  //     continue; 
+  //   }
+  //   exists = true;
+  //   break; 
+  // }
+  // return exists;
 }
 
 // void SubQueryExpr::add_parent_tuple(Tuple *parent_tuple) {
