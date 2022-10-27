@@ -934,6 +934,22 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $3, $5);
 
+		switch (CONTEXT->comp) {
+			case LESS_EQUAL: {
+				CONTEXT->comp = GREAT_EQUAL;
+			} break;
+			case LESS_THAN: {
+				CONTEXT->comp = GREAT_THAN;
+			} break;
+			case GREAT_EQUAL: {
+				CONTEXT->comp = LESS_EQUAL;
+			} break;
+			case GREAT_THAN: {
+				CONTEXT->comp = LESS_THAN;
+			} break;
+			default: break;
+		}
+
 		Condition condition;
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -942,6 +958,21 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $3);
 
+		switch (CONTEXT->comp) {
+			case LESS_EQUAL: {
+				CONTEXT->comp = GREAT_EQUAL;
+			} break;
+			case LESS_THAN: {
+				CONTEXT->comp = GREAT_THAN;
+			} break;
+			case GREAT_EQUAL: {
+				CONTEXT->comp = LESS_EQUAL;
+			} break;
+			case GREAT_THAN: {
+				CONTEXT->comp = LESS_THAN;
+			} break;
+			default: break;
+		}
 		Condition condition;
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;

@@ -76,18 +76,23 @@ RC SubQueryExpr::get_value(const Tuple &tuple, TupleCell & cell) const {
       return RC::GENERIC_ERROR;
     }
     cnt = 1;
-    return tmp_tuple->cell_at(0, cell);
+    rc = tmp_tuple->cell_at(0, cell);
   }
 
-  // no result of this sub query
-  LOG_WARN("no result of the sub query");
-  printf("no result of the sub query\n");
-  return RC::GENERIC_ERROR;
+  if (cnt == 0) {
+    // no result of this sub query
+    LOG_WARN("no result of the sub query");
+    printf("no result of the sub query\n");
+    return RC::GENERIC_ERROR;
+  }
+  
+  return rc;
+
 }
 
 
 
-bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell) {
+RC SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell, bool &res) {
 
   printf("sub query: start query\n");
 
@@ -127,9 +132,10 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
     printf("sub_query:do_select: get a tuple\n");
     // tuple_set.push_back(tuple);
     TupleCell tmp_cell;
-    if (tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+    
+    if ((rc = tuple->cell_at(0, tmp_cell)) != RC::SUCCESS) {
       LOG_WARN("sub query tuple get cell wrong");
-      return false;
+      return rc;
     }
     if (check_exist) {
       // check exist
@@ -137,14 +143,15 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
         // loop until find a tuple that isn't NULL
         continue;
       }
-      return true;
+      res = true;
+      return RC::SUCCESS;
     }
 
     // check contain
     if (tuple->cell_num() != 1) {
       // the sub query must select only one field
       // TODO: not sure
-      return false;
+       return RC::GENERIC_ERROR;
     }
     if(left_cell->attr_type() == AttrType::NULLS || tmp_cell.attr_type() == AttrType::NULLS) {
       // loop until find a tuple that isn't NULL
@@ -152,11 +159,13 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
     }
     int cmp = left_cell->compare(tmp_cell);
     if (cmp == 0) {
-      return true;
+      res = true;
+      return RC::SUCCESS;
     }
   }
   
-  return false;
+  res = false;
+  return RC::SUCCESS;
 
   // if (!check_contain) {
   //   // check exist
@@ -188,7 +197,7 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
   // return exists;
 }
 
-bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell) {
+RC SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell, bool &res) {
 
   printf("sub query: start query\n");
 
@@ -230,25 +239,34 @@ bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_co
     printf("sub_query:do_select: get a tuple\n");
     // tuple_set.push_back(tuple);
     TupleCell tmp_cell;
-    if (tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+    if ((rc = tuple->cell_at(0, tmp_cell)) != RC::SUCCESS) {
       LOG_WARN("sub query tuple get cell wrong");
-      return false;
+      return rc;
     }
 
     if (check_exist) {
       // check not exist
-      return false;
+      res = false;
+      return RC::SUCCESS;
+    }
+    if (tuple->cell_num() != 1) {
+      // the sub query must select only one field
+      // TODO: not sure
+       return RC::GENERIC_ERROR;
     }
     // check not contain
     if(tmp_cell.attr_type() == AttrType::NULLS) {
-      return false;
+      res = false;
+      return RC::SUCCESS;
     }
     int cmp = left_cell->compare(tmp_cell);
     if (cmp == 0) {
-      return false;
+      res = false;
+      return RC::SUCCESS;
     }
   }
-  return true;
+  res = true;
+  return RC::SUCCESS;
 
 }
 

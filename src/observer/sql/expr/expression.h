@@ -117,8 +117,8 @@ public:
 
   RC get_value(const Tuple &tuple, TupleCell & cell) const override;
 
-  bool check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell);
-  bool check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell);
+  RC check_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell, bool &res);
+  RC check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell, bool &res);
 
   // void add_parent_tuple(Tuple *parent_tuple);
 private:
