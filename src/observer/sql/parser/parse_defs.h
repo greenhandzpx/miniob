@@ -119,6 +119,11 @@ typedef struct Selects {
 
   size_t aggregation_num;
   AggregationOp aggregation_ops[MAX_NUM];
+  
+  size_t order_attr_num;
+  RelAttr order_attrs[MAX_NUM];    // attrs in order by
+  int is_asc[MAX_NUM];                      // is order by asc
+  int is_order;                    // 是否排序
 } Selects;
 
 // struct of insert
@@ -267,6 +272,8 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
+void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc);
+void selects_set_order(Selects *selects, int order);
 void selects_destroy(Selects *selects);
 
 // void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);

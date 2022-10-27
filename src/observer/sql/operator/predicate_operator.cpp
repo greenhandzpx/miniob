@@ -299,8 +299,7 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         }
       } break;
 
-      case Contain: 
-      case NotContain: {
+      case Contain: {
         TupleCell left_cell;
         left_expr->get_value(tuple, left_cell);
         
@@ -321,13 +320,31 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         }
 
         if (!exists) {
-          if (filter_unit->get_type() == Contain) {
-            return false;
-          }          
+          return false;          
+        }
+      } break;
+      case NotContain: {
+        TupleCell left_cell;
+        left_expr->get_value(tuple, left_cell);
+        
+        // 左值为null,返回false
+        if (left_cell.attr_type() == AttrType::NULLS) {
+          return false;
+        }
+
+        auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
+
+        bool notct; 
+        if (right_sub_query_expr) {
+          notct = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
         } else {
-          if (filter_unit->get_type() == NotContain) {
-            return false;
-          }          
+          auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
+          printf("predicate operator: check contain(value set)\n");
+          notct = right_value_set_expr->check_not_contain(left_cell);
+        }
+
+        if (!notct) {
+          return false;          
         }
       } break;
 
