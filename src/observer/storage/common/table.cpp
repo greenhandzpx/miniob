@@ -889,6 +889,7 @@ RC Table::update_record(Trx *trx, Record *record)
   // then update new index
   rc = insert_entry_of_indexes(record->data(), record->rid());
   if (rc != RC::SUCCESS) {
+    printf("rc wrong!!!!!!!!!!!!!!!!!!!!!!!!!!! rc = %d\n", rc);
     LOG_ERROR("Failed to update indexes of record (rid=%d.%d). rc=%d:%s",
                 record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
   } else {

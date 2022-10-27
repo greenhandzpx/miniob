@@ -203,10 +203,7 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
     }
   }
 
-
-
-  printf("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHh\n");
-  return RC::SUCCESS;
+  return rc;
 }
 
 

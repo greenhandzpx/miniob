@@ -290,7 +290,7 @@ void deletes_destroy(Deletes *deletes);
 //     Condition conditions[], size_t condition_num);
 
 // ****************************************upselect****************************************
-void updates_init(Updates *updates, const char *relation_name, const char *attribute_name[], Value *value, size_t values_num,
+void updates_init(Updates *updates, const char *relation_name, const char *attribute_name[], Value *values, size_t values_num,
     Condition conditions[], size_t condition_num, Selects *select_vec[]);
 // ****************************************upselect****************************************
 void updates_destroy(Updates *updates);

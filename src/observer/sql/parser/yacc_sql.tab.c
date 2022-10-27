@@ -2008,7 +2008,7 @@ yyreduce:
                 {
 			CONTEXT->ssql->flag = SCF_UPDATE;//"update";
 			updates_init(&CONTEXT->ssql->sstr.update, (yyvsp[-5].string), CONTEXT->attribute_name, CONTEXT->values, CONTEXT->upselect_num,
-					CONTEXT->conditions, CONTEXT->condition_length, CONTEXT->upselect_vec);
+					CONTEXT->conditions, CONTEXT->condition_length, CONTEXT->upselect_vec, &CONTEXT->values[0]);
 			CONTEXT->condition_length = 0;
 			CONTEXT->value_length = 0;
 			CONTEXT->upselect_num = 0;
