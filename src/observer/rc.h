@@ -228,6 +228,7 @@ enum RC {
   SUB_ROW_ERROR,    
   SUB_COL_ERROR,    
   SUB_SAME_TABLE,   
+  SUB_BAD_TYPE,
   //*******************************upselect******************************
 
   NOTICE = 100,     /* Notifications from log() */

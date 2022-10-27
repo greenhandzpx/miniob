@@ -192,12 +192,25 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
         return rc;
       }
       
-      TupleCell* cellptr = new TupleCell;
-      TupleCell cell = *cellptr;
+      TupleCell cell;
       tuple->cell_at(0, cell);
 
       const_cast<Value*>(&u_stmt->values_[i])->type = cell.attr_type();
-      const_cast<Value*>(&u_stmt->values_[i])->data = (void*)cell.data();
+
+      size_t len;
+
+      if (cell.attr_type() == INTS) {
+        len = sizeof(int);
+      } else if (cell.attr_type() == CHARS) {
+        len = strlen((char*)cell.data());
+      } else if (cell.attr_type() == FLOATS) {
+        len = sizeof(float);
+      } else {
+        // todo
+        return RC::SUB_BAD_TYPE;
+      }
+      const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
+      memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
       
     }
   }
