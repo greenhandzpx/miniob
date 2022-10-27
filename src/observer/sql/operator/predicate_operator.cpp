@@ -320,11 +320,7 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         }
 
         if (!exists) {
-<<<<<<< HEAD
           return false;         
-=======
-          return false;          
->>>>>>> order_by
         }
       } break;
       case NotContain: {
@@ -338,7 +334,6 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
-<<<<<<< HEAD
         bool exists; 
         if (right_sub_query_expr) {
           exists = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
@@ -350,19 +345,6 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 
         if (!exists) {
           return false;         
-=======
-        bool notct; 
-        if (right_sub_query_expr) {
-          notct = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
-        } else {
-          auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
-          printf("predicate operator: check contain(value set)\n");
-          notct = right_value_set_expr->check_not_contain(left_cell);
-        }
-
-        if (!notct) {
-          return false;          
->>>>>>> order_by
         }
       } break;
 
