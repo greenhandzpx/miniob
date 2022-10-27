@@ -86,7 +86,7 @@ RC SubQueryExpr::get_value(const Tuple &tuple, TupleCell & cell) const {
     return RC::GENERIC_ERROR;
   }
   
-  return rc;
+  return RC::SUCCESS;
 
 }
 
