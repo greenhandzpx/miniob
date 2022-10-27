@@ -915,19 +915,19 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 RC ExecuteStage::order_comp(std::vector<TupleCell> &cells1, std::vector<TupleCell> &cells2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp) {
   auto size = order_fields.size();
   for (int i = 0; i < size; i++) {
-    if (cells1[i].attr_type() == AttrType::NULLS) {
-      if (order_fields[i].second) {
-        cmp = -1111;
-      } else {
-        cmp = 1111;
-      }
-      return RC::SUCCESS;
-    }
     if (cells2[i].attr_type() == AttrType::NULLS) {
       if (order_fields[i].second) {
         cmp = 2222;
       } else {
         cmp = -2222;
+      }
+      return RC::SUCCESS;
+    }
+    if (cells1[i].attr_type() == AttrType::NULLS) {
+      if (order_fields[i].second) {
+        cmp = -1111;
+      } else {
+        cmp = 1111;
       }
       return RC::SUCCESS;
     }

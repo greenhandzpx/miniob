@@ -86,7 +86,7 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
       LOG_WARN("sub query tuple get cell wrong");
       return false;
     }
-    if(left_cell->attr_type() == AttrType::NULLS || tmp_cell.attr_type() == AttrType::NULLS) {
+    if (tmp_cell.attr_type() == AttrType::NULLS) {
       continue;
     }
     int cmp = left_cell->compare(tmp_cell);
@@ -128,10 +128,16 @@ bool SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contai
 }
 
 bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_contain, TupleCell *left_cell) {
+<<<<<<< HEAD
+  printf("sub query: start query\n");
+
+  // std::vector<Tuple*> tuple_set;
+=======
 
   printf("sub query: start query\n");
 
   std::vector<Tuple*> tuple_set;
+>>>>>>> order_by
   RC rc;
   PredicateOperator pred_oper(select_stmt_->filter_stmt());
 
@@ -164,6 +170,16 @@ bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_co
   Tuple *tuple;
   while ((rc = ExecuteStage::normal_select_handler(select_stmt_, tuple, project_oper)) == RC::SUCCESS) {
     printf("sub_query:do_select: get a tuple\n");
+<<<<<<< HEAD
+    // tuple_set.push_back(tuple);
+    if (!check_contain) {
+      // check exist
+      return true;
+    }
+
+    // check contain
+    if (tuple->cell_num() != 1) {
+=======
     tuple_set.push_back(tuple);
   }
 
@@ -178,16 +194,25 @@ bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_co
   for (Tuple *tmp_tuple: tuple_set) {
     // auto tmp_tuple = dynamic_cast<ProjectTuple*>(dummy_tuple);
     if (tmp_tuple->cell_num() != 1) {
+>>>>>>> order_by
       // the sub query must select only one field
       // TODO: not sure
       return false;
     }
     TupleCell tmp_cell;
+<<<<<<< HEAD
+    if (tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
+      LOG_WARN("sub query tuple get cell wrong");
+      return false;
+    }
+    if (tmp_cell.attr_type() == AttrType::NULLS) {
+=======
     if (tmp_tuple->cell_at(0, tmp_cell) != RC::SUCCESS) {
       LOG_WARN("sub query tuple get cell wrong");
       return false;
     }
     if(tmp_cell.attr_type() == AttrType::NULLS) {
+>>>>>>> order_by
       return false;
     }
     int cmp = left_cell->compare(tmp_cell);
@@ -195,9 +220,15 @@ bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_co
       return false;
     }
   }
+<<<<<<< HEAD
+  
+  return true;
+}
+=======
   return true;
 }
 
+>>>>>>> order_by
 // void SubQueryExpr::add_parent_tuple(Tuple *parent_tuple) {
 //   parent_tuple_ = parent_tuple;
 // }
@@ -205,6 +236,9 @@ bool SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_co
 
 bool ValueSetExpr::check_contain(TupleCell &other_tuple_cell) const {
   for (auto &value: value_set_) {
+    if (value.type == AttrType::NULLS) {
+      continue;
+    }
     TupleCell tmp = TupleCell(value.type, (char *)value.data);
     if (tmp.attr_type() == AttrType::NULLS) {
       continue;
@@ -217,17 +251,33 @@ bool ValueSetExpr::check_contain(TupleCell &other_tuple_cell) const {
   return false;
 }
 
+<<<<<<< HEAD
+bool ValueSetExpr::check_not_contain(TupleCell &other_tuple_cell) const {
+  for (auto &value: value_set_) {
+    if (value.type == AttrType::NULLS) {
+      return false;
+    }
+    TupleCell tmp = TupleCell(value.type, (char *)value.data);
+    if (other_tuple_cell.compare(tmp) == 0) {
+=======
 
 bool ValueSetExpr::check_not_contain(TupleCell &other_tuple_cell) const {
   for (auto &value: value_set_) {
     TupleCell tmp = TupleCell(value.type, (char *)value.data);
     if (tmp.attr_type() == AttrType::NULLS || other_tuple_cell.compare(tmp) == 0) {
+>>>>>>> order_by
       printf("value set expr: find an equal value\n");
       return false;
     }
   }
+<<<<<<< HEAD
+  return true;
+}
+
+=======
   return false;
 }
+>>>>>>> order_by
 bool ValueSetExpr::check_contain(Value &other_value) const {
   // TODO
   assert(false);

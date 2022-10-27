@@ -560,7 +560,8 @@ aggregation_field_attr:
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
-	};
+	}
+	;
 
 aggregate_op: 
 	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }

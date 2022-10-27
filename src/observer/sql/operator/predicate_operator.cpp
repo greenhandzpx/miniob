@@ -214,7 +214,7 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
       case Contain: {
         TupleCell left_cell;
         left_expr->get_value(tuple, left_cell);
-        
+
         // 左值为null,返回false
         if (left_cell.attr_type() == AttrType::NULLS) {
           return false;
@@ -232,7 +232,11 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
         }
 
         if (!exists) {
+<<<<<<< HEAD
+          return false;         
+=======
           return false;          
+>>>>>>> order_by
         }
       } break;
       case NotContain: {
@@ -246,6 +250,19 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
+<<<<<<< HEAD
+        bool exists; 
+        if (right_sub_query_expr) {
+          exists = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
+        } else {
+          auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
+          printf("predicate operator: check contain(value set)\n");
+          exists = right_value_set_expr->check_not_contain(left_cell);
+        }
+
+        if (!exists) {
+          return false;         
+=======
         bool notct; 
         if (right_sub_query_expr) {
           notct = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
@@ -257,6 +274,7 @@ bool PredicateOperator::do_predicate(Tuple &tuple)
 
         if (!notct) {
           return false;          
+>>>>>>> order_by
         }
       } break;
 
