@@ -179,12 +179,16 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         if (left_expr->type() == ExprType::FIELD) {
           tuple.find_cell(dynamic_cast<FieldExpr*>(left_expr)->field(), left_cell, left_index);
         } else {
-          left_expr->get_value(tuple, left_cell);
+          if (RC::SUCCESS != left_expr->get_value(tuple, left_cell)) {
+            return false;
+          }
         }
         if (right_expr->type() == ExprType::FIELD) {
           tuple.find_cell(dynamic_cast<FieldExpr*>(right_expr)->field(), right_cell, right_index);
         } else {
-          right_expr->get_value(tuple, right_cell);
+          if (RC::SUCCESS != right_expr->get_value(tuple, right_cell)) {
+            return false;
+          }
         }
 
         // is null 和 is not null 的逻辑判断
@@ -237,6 +241,7 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
           LOG_WARN("invalid compare type: %d", comp);
         } break;
         }
+
         if (!filter_result) {
           if (left_index != -1 || right_index != -1) {
             int target_index = left_index > right_index ? left_index : right_index;
