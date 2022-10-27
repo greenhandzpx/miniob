@@ -831,6 +831,12 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         }
         ss_tuples.push_back(std::make_pair(tmpss.str(), tmpcell));
       }
+
+      if (rc != RC::RECORD_EOF) {
+        // something wrong happened when iterating the tuples
+        session_event->set_response("FAILURE\n");
+        return rc;
+      }
       
       auto size = ss_tuples.size();
       for (int i = 0; i < size; ++i) {
@@ -901,6 +907,12 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         printf("do_select: get a tuple\n");
         tuple_to_string(ss, *tuple);
         ss << std::endl;
+      }
+
+      if (rc != RC::RECORD_EOF) {
+        // something wrong happened when iterating the tuples
+        session_event->set_response("FAILURE\n");
+        return rc;
       }
     }
   }

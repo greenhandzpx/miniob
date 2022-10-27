@@ -66,16 +66,16 @@ RC PredicateOperator::next()
     //   delete current_tuple_;
     // }
     if (parent_tuple_ != nullptr) {
+      if (current_tuple_->size() > children_.size()) {
+        current_tuple_->pop_back();
+      }
+      printf("sub query has a parent tuple\n");
       current_tuple_->push_back(parent_tuple_);
       // tuple_stack_.push_back(parent_tuple_);
     }
     // printf("get a new composite tuple\n");
     // current_tuple_ = new CompositeTuple(tuple_stack_);
 
-    if (parent_tuple_ != nullptr) {
-      current_tuple_->pop_back();
-      // tuple_stack_.pop_back();
-    }
     // Tuple *tuple = current_tuple();
     if (nullptr == current_tuple_) {
       rc = RC::INTERNAL;
@@ -83,8 +83,17 @@ RC PredicateOperator::next()
       break;
     }
 
-    if (do_predicate(static_cast<CompositeTuple &>(*current_tuple_))) {
+    bool res;
+    if (RC::SUCCESS != (rc = do_predicate(*current_tuple_, res))) {
       return rc;
+    }
+    if (res) {
+      return rc;
+    }
+
+    if (parent_tuple_ != nullptr) {
+      current_tuple_->pop_back();
+      // tuple_stack_.pop_back();
     }
   }
   return rc;
@@ -101,16 +110,17 @@ RC PredicateOperator::next_when_multi_tables() {
 
   RC rc = RC::SUCCESS;
 
-  if (tuple_stack_.size() < children_.size()) {
+  int target_tuple_num = children_.size() + (parent_tuple_ ? 1 : 0);
+  if (tuple_stack_.size() != target_tuple_num) {
     // this must be the first time to call 
-    if (tuple_stack_.size() != 0) {
-      LOG_WARN("something error happens");
-      return RC::INTERNAL;
-    }
+    // if (tuple_stack_.size() != 0) {
+    //   LOG_WARN("something error happens");
+    //   return RC::INTERNAL;
+    // }
     for (auto child: children_) {
       if (child->next() != RC::SUCCESS) {
         LOG_WARN("shouldn't be empty table in predicate chilren");
-        return RC::INTERNAL;
+        return RC::RECORD_EOF;
       }
       tuple_stack_.push_back(child->current_tuple());
       stk_top_++;
@@ -157,11 +167,13 @@ RC PredicateOperator::next_when_multi_tables() {
   return rc;
 }
 
-bool PredicateOperator::do_predicate(CompositeTuple &tuple)
+RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
+// bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 {
   has_accelerated_ = false;
   if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
-    return true;
+    res = true;
+    return RC::SUCCESS;
   }
 
   for (const FilterUnit *filter_unit : filter_stmt_->filter_units()) {
@@ -176,25 +188,39 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         TupleCell left_cell;
         TupleCell right_cell;
         int left_index = -1, right_index = -1;
+        RC rc;
         if (left_expr->type() == ExprType::FIELD) {
-          tuple.find_cell(dynamic_cast<FieldExpr*>(left_expr)->field(), left_cell, left_index);
+          if (RC::SUCCESS != (rc = tuple.find_cell(dynamic_cast<FieldExpr*>(left_expr)->field(), left_cell, left_index))) {
+            return rc;
+          }
         } else {
-          left_expr->get_value(tuple, left_cell);
+          if (RC::SUCCESS != (rc = left_expr->get_value(tuple, left_cell))) {
+            res = false;
+            return rc;
+          }
         }
         if (right_expr->type() == ExprType::FIELD) {
-          tuple.find_cell(dynamic_cast<FieldExpr*>(right_expr)->field(), right_cell, right_index);
+          if (RC::SUCCESS != (rc = tuple.find_cell(dynamic_cast<FieldExpr*>(right_expr)->field(), right_cell, right_index))) {
+            return rc;
+          }
         } else {
-          right_expr->get_value(tuple, right_cell);
+          if (RC::SUCCESS != (rc = right_expr->get_value(tuple, right_cell))) {
+            res = false;
+            return rc;
+          }
         }
 
         // is null 和 is not null 的逻辑判断
         if (left_cell.attr_type() == AttrType::NULLS || right_cell.attr_type() == AttrType::NULLS) {
           if (comp == LOGICAL_IS) {
-            return left_cell.attr_type() == right_cell.attr_type();
+            res = left_cell.attr_type() == right_cell.attr_type();
+            return RC::SUCCESS;
           } else if (comp == LOGICAL_IS_NOT) {
-            return left_cell.attr_type() != right_cell.attr_type();
+            res = left_cell.attr_type() != right_cell.attr_type();
+            return RC::SUCCESS;
           } else {
-            return false;
+            res = false;
+            return RC::SUCCESS;
           }
         }
 
@@ -237,10 +263,17 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
           LOG_WARN("invalid compare type: %d", comp);
         } break;
         }
+
         if (!filter_result) {
           if (left_index != -1 || right_index != -1) {
+
             int target_index = left_index > right_index ? left_index : right_index;
 
+            if (target_index == children_.size()) {
+              // this tuple is from parent;
+              res = false;
+              return RC::SUCCESS;
+            }
             has_accelerated_ = true;
 
             // if (target_index == children_.size() - 1) {
@@ -273,7 +306,8 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
                 children_[i]->open();
               }
               is_over_ = true;
-              return false;
+              res = false;
+              return RC::SUCCESS;
             }
             ++tmp;
             for (; tmp < n; ++tmp) {
@@ -295,7 +329,8 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
             //   }
             // }
           }          
-          return false;
+          res = false;
+          return RC::SUCCESS;
         }
       } break;
 
@@ -305,14 +340,18 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 
         // 左值为null,返回false
         if (left_cell.attr_type() == AttrType::NULLS) {
-          return false;
+          res = false;
+          return RC::SUCCESS;
         }
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
         bool exists; 
+        RC rc;
         if (right_sub_query_expr) {
-          exists = right_sub_query_expr->check_contain_or_exist(&tuple, true, &left_cell);
+          if (RC::SUCCESS != (rc = right_sub_query_expr->check_contain_or_exist(&tuple, true, &left_cell, exists))) {
+            return rc;
+          }
         } else {
           auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
           printf("predicate operator: check contain(value set)\n");
@@ -320,7 +359,8 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         }
 
         if (!exists) {
-          return false;         
+          res = false;
+          return RC::SUCCESS;
         }
       } break;
       case NotContain: {
@@ -329,22 +369,27 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
         
         // 左值为null,返回false
         if (left_cell.attr_type() == AttrType::NULLS) {
-          return false;
+          res = false;
+          return RC::SUCCESS;
         }
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
-        bool exists; 
+        bool notct; 
+        RC rc;
         if (right_sub_query_expr) {
-          exists = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell);
+          if (RC::SUCCESS != (rc = right_sub_query_expr->check_not_contain_or_exist(&tuple, true, &left_cell, notct))) {
+            return rc;
+          }
         } else {
           auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
           printf("predicate operator: check contain(value set)\n");
           exists = right_value_set_expr->check_not_contain(left_cell);
         }
 
-        if (!exists) {
-          return false;         
+        if (!notct) {
+          res = false;
+          return RC::SUCCESS;
         }
       } break;
 
@@ -353,15 +398,21 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
 
-        bool exists = right_sub_query_expr->check_contain_or_exist(&tuple, false, nullptr);
+        bool exists; 
+        RC rc; 
+        if (RC::SUCCESS != (rc = right_sub_query_expr->check_contain_or_exist(&tuple, false, nullptr, exists))) {
+          return rc;
+        }
 
         if (!exists) {
           if (filter_unit->get_type() == Exists) {
-            return false;
+            res = false;
+            return RC::SUCCESS;
           }
         } else {
           if (filter_unit->get_type() == NotExists) {
-            return false;
+            res = false;
+            return RC::SUCCESS;
           }
         }
       } break;
@@ -369,7 +420,8 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
     }
 
   }
-  return true;
+  res = true;
+  return RC::SUCCESS;
 }
 
 Tuple * PredicateOperator::current_tuple()

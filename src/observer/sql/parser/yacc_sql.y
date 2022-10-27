@@ -585,7 +585,14 @@ aggregation_field_attr:
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
 	}
-	;
+	| ID DOT ID attr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, $3);
+		printf("aggregation: get a attr %s\n", $3);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	};
 
 aggregate_op: 
 	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }
@@ -935,6 +942,61 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $1, $3);
 
+		Condition condition;
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| ID comOp sub_query {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $1);
+
+		Condition condition;
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| sub_query comOp ID DOT ID {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $3, $5);
+
+		switch (CONTEXT->comp) {
+			case LESS_EQUAL: {
+				CONTEXT->comp = GREAT_EQUAL;
+			} break;
+			case LESS_THAN: {
+				CONTEXT->comp = GREAT_THAN;
+			} break;
+			case GREAT_EQUAL: {
+				CONTEXT->comp = LESS_EQUAL;
+			} break;
+			case GREAT_THAN: {
+				CONTEXT->comp = LESS_THAN;
+			} break;
+			default: break;
+		}
+
+		Condition condition;
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| sub_query comOp ID {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $3);
+
+		switch (CONTEXT->comp) {
+			case LESS_EQUAL: {
+				CONTEXT->comp = GREAT_EQUAL;
+			} break;
+			case LESS_THAN: {
+				CONTEXT->comp = GREAT_THAN;
+			} break;
+			case GREAT_EQUAL: {
+				CONTEXT->comp = LESS_EQUAL;
+			} break;
+			case GREAT_THAN: {
+				CONTEXT->comp = LESS_THAN;
+			} break;
+			default: break;
+		}
 		Condition condition;
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;

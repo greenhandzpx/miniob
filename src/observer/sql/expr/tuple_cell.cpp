@@ -99,6 +99,7 @@ int TupleCell::compare(const TupleCell &other) const
 
 
   LOG_WARN("not supported");
+  printf("not supported typecase: %d to %d\n", this->attr_type_, other.attr_type_);
   return -1; // TODO return rc?
 }
 
