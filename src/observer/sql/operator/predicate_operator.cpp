@@ -384,7 +384,7 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         } else {
           auto right_value_set_expr = dynamic_cast<ValueSetExpr*>(right_expr);
           printf("predicate operator: check contain(value set)\n");
-          exists = right_value_set_expr->check_not_contain(left_cell);
+          notct = right_value_set_expr->check_not_contain(left_cell);
         }
 
         if (!notct) {
