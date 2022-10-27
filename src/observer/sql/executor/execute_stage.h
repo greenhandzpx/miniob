@@ -81,4 +81,6 @@ private:
   Stage *mem_storage_stage_ = nullptr;
 };
 
+void tuple_to_string(std::ostream &os, const Tuple &tuple);
+
 #endif  //__OBSERVER_SQL_EXECUTE_STAGE_H__

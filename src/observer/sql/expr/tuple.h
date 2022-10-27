@@ -214,6 +214,17 @@ public:
     return RC::NOTFOUND;
   }
 
+  RC find_cell(const Field &field, TupleCell &cell, int &index) const {
+    for (int i = 0; i < tuples_.size(); ++i) {
+      Tuple *tuple = tuples_[i];
+      if (tuple->find_cell(field, cell) == RC::SUCCESS) {
+        index = i;
+        return RC::SUCCESS;
+      }
+    }
+    return RC::NOTFOUND;
+  }
+
   RC cell_spec_at(int index, const TupleCellSpec *&spec) const override {
     for (Tuple *tuple: tuples_) {
       if (tuple->cell_spec_at(index, spec) == RC::SUCCESS) {
@@ -223,6 +234,26 @@ public:
     } 
     return RC::INVALID_ARGUMENT;
   }
+
+
+  void push_back(Tuple *tuple) {
+    tuples_.push_back(tuple);
+  }
+
+  void set_tuple_by_index(int index, Tuple *tuple) {
+    if (index < 0 || index >= tuples_.size()) {
+      return;
+    }
+    tuples_[index] = tuple;
+  }
+
+  void pop_back() {
+    if (tuples_.empty()) {
+      return;
+    }
+    tuples_.pop_back();
+  }
+
 
 private:
   int cell_num_ = 0;
