@@ -143,6 +143,8 @@ ParserContext *get_context(yyscan_t scanner)
 		ORDER
 		BY
 		ASC
+		GROUP
+		HAVING
 
 %union {
   struct _Attr *attr;
