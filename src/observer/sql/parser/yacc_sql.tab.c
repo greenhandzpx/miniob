@@ -697,9 +697,9 @@ static const yytype_int16 yyrline[] =
      603,   610,   617,   623,   628,   630,   633,   638,   640,   644,
      646,   652,   655,   661,   666,   671,   676,   683,   685,   690,
      695,   700,   707,   708,   711,   713,   718,   740,   761,   782,
-     805,   827,   849,   869,   878,   887,   897,   907,   915,   923,
-     931,   939,   946,   956,   964,   982,   983,   984,   985,   986,
-     987,   988,   989,   990,   991,   995
+     805,   827,   849,   869,   878,   887,   898,   909,   917,   925,
+     933,   941,   948,   958,   966,   984,   985,   986,   987,   988,
+     989,   990,   991,   992,   993,   997
 };
 #endif
 
@@ -2416,14 +2416,15 @@ yyreduce:
 		Condition condition;
 		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
-#line 2423 "yacc_sql.tab.c"
+#line 2424 "yacc_sql.tab.c"
     break;
 
   case 126: /* condition: ID NOT IN LBRACE value value_list RBRACE  */
-#line 897 "yacc_sql.y"
+#line 898 "yacc_sql.y"
                                                    {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, (yyvsp[-6].string));
@@ -2431,14 +2432,15 @@ yyreduce:
 		Condition condition;
 		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
-#line 2438 "yacc_sql.tab.c"
+#line 2440 "yacc_sql.tab.c"
     break;
 
   case 127: /* condition: ID DOT ID comOp sub_query  */
-#line 907 "yacc_sql.y"
+#line 909 "yacc_sql.y"
                                     {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, (yyvsp[-4].string), (yyvsp[-2].string));
@@ -2447,11 +2449,11 @@ yyreduce:
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-#line 2451 "yacc_sql.tab.c"
+#line 2453 "yacc_sql.tab.c"
     break;
 
   case 128: /* condition: ID comOp sub_query  */
-#line 915 "yacc_sql.y"
+#line 917 "yacc_sql.y"
                              {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, (yyvsp[-2].string));
@@ -2460,11 +2462,11 @@ yyreduce:
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-#line 2464 "yacc_sql.tab.c"
+#line 2466 "yacc_sql.tab.c"
     break;
 
   case 129: /* condition: sub_query comOp ID DOT ID  */
-#line 923 "yacc_sql.y"
+#line 925 "yacc_sql.y"
                                     {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, (yyvsp[-2].string), (yyvsp[0].string));
@@ -2473,11 +2475,11 @@ yyreduce:
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-#line 2477 "yacc_sql.tab.c"
+#line 2479 "yacc_sql.tab.c"
     break;
 
   case 130: /* condition: sub_query comOp ID  */
-#line 931 "yacc_sql.y"
+#line 933 "yacc_sql.y"
                              {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, (yyvsp[0].string));
@@ -2486,11 +2488,11 @@ yyreduce:
 		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-#line 2490 "yacc_sql.tab.c"
+#line 2492 "yacc_sql.tab.c"
     break;
 
   case 131: /* condition: EXISTS sub_query  */
-#line 939 "yacc_sql.y"
+#line 941 "yacc_sql.y"
                            {
 
 		Condition condition;
@@ -2498,11 +2500,11 @@ yyreduce:
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
-#line 2502 "yacc_sql.tab.c"
+#line 2504 "yacc_sql.tab.c"
     break;
 
   case 132: /* condition: NOT EXISTS sub_query  */
-#line 946 "yacc_sql.y"
+#line 948 "yacc_sql.y"
                                {
 
 		Condition condition;
@@ -2510,11 +2512,11 @@ yyreduce:
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
-#line 2514 "yacc_sql.tab.c"
+#line 2516 "yacc_sql.tab.c"
     break;
 
   case 133: /* sub_query: LBRACE N select_query RBRACE  */
-#line 956 "yacc_sql.y"
+#line 958 "yacc_sql.y"
                                      {
 		// TODO support complex sub query
 		ParserContext *old_context = CONTEXT->last_context;
@@ -2523,11 +2525,11 @@ yyreduce:
 		printf("sub query addr %p\n", old_context->sub_query);
 		printf("swap back old context\n");
 	}
-#line 2527 "yacc_sql.tab.c"
+#line 2529 "yacc_sql.tab.c"
     break;
 
   case 134: /* N: %empty  */
-#line 964 "yacc_sql.y"
+#line 966 "yacc_sql.y"
                {
 	// create a new context
 	ParserContext *old_context = (ParserContext *)malloc(sizeof(ParserContext));
@@ -2543,80 +2545,80 @@ yyreduce:
 	CONTEXT->last_context = old_context;
 	printf("swap out old context\n");
 }
-#line 2547 "yacc_sql.tab.c"
+#line 2549 "yacc_sql.tab.c"
     break;
 
   case 135: /* comOp: EQ  */
-#line 982 "yacc_sql.y"
+#line 984 "yacc_sql.y"
              { CONTEXT->comp = EQUAL_TO; }
-#line 2553 "yacc_sql.tab.c"
+#line 2555 "yacc_sql.tab.c"
     break;
 
   case 136: /* comOp: LT  */
-#line 983 "yacc_sql.y"
+#line 985 "yacc_sql.y"
          { CONTEXT->comp = LESS_THAN; }
-#line 2559 "yacc_sql.tab.c"
+#line 2561 "yacc_sql.tab.c"
     break;
 
   case 137: /* comOp: GT  */
-#line 984 "yacc_sql.y"
+#line 986 "yacc_sql.y"
          { CONTEXT->comp = GREAT_THAN; }
-#line 2565 "yacc_sql.tab.c"
+#line 2567 "yacc_sql.tab.c"
     break;
 
   case 138: /* comOp: LE  */
-#line 985 "yacc_sql.y"
+#line 987 "yacc_sql.y"
          { CONTEXT->comp = LESS_EQUAL; }
-#line 2571 "yacc_sql.tab.c"
+#line 2573 "yacc_sql.tab.c"
     break;
 
   case 139: /* comOp: GE  */
-#line 986 "yacc_sql.y"
+#line 988 "yacc_sql.y"
          { CONTEXT->comp = GREAT_EQUAL; }
-#line 2577 "yacc_sql.tab.c"
+#line 2579 "yacc_sql.tab.c"
     break;
 
   case 140: /* comOp: NE  */
-#line 987 "yacc_sql.y"
+#line 989 "yacc_sql.y"
          { CONTEXT->comp = NOT_EQUAL; }
-#line 2583 "yacc_sql.tab.c"
+#line 2585 "yacc_sql.tab.c"
     break;
 
   case 141: /* comOp: IS  */
-#line 988 "yacc_sql.y"
+#line 990 "yacc_sql.y"
              { CONTEXT->comp = LOGICAL_IS; }
-#line 2589 "yacc_sql.tab.c"
+#line 2591 "yacc_sql.tab.c"
     break;
 
   case 142: /* comOp: IS NOT  */
-#line 989 "yacc_sql.y"
+#line 991 "yacc_sql.y"
                  {CONTEXT->comp = LOGICAL_IS_NOT; }
-#line 2595 "yacc_sql.tab.c"
+#line 2597 "yacc_sql.tab.c"
     break;
 
   case 143: /* comOp: LIKE  */
-#line 990 "yacc_sql.y"
+#line 992 "yacc_sql.y"
                { CONTEXT->comp = LIKE_OP; }
-#line 2601 "yacc_sql.tab.c"
+#line 2603 "yacc_sql.tab.c"
     break;
 
   case 144: /* comOp: NOT LIKE  */
-#line 991 "yacc_sql.y"
+#line 993 "yacc_sql.y"
                    { CONTEXT->comp = NOT_LIKE_OP; }
-#line 2607 "yacc_sql.tab.c"
+#line 2609 "yacc_sql.tab.c"
     break;
 
   case 145: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
-#line 996 "yacc_sql.y"
+#line 998 "yacc_sql.y"
                 {
 		  CONTEXT->ssql->flag = SCF_LOAD_DATA;
 			load_data_init(&CONTEXT->ssql->sstr.load_data, (yyvsp[-1].string), (yyvsp[-4].string));
 		}
-#line 2616 "yacc_sql.tab.c"
+#line 2618 "yacc_sql.tab.c"
     break;
 
 
-#line 2620 "yacc_sql.tab.c"
+#line 2622 "yacc_sql.tab.c"
 
       default: break;
     }
@@ -2809,7 +2811,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 1001 "yacc_sql.y"
+#line 1003 "yacc_sql.y"
 
 //_____________________________________________________________________
 extern void scan_string(const char *str, yyscan_t scanner);

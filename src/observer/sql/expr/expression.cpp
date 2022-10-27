@@ -280,7 +280,7 @@ bool ValueSetExpr::check_not_contain(TupleCell &other_tuple_cell) const {
       return false;
     }
   }
-  return false;
+  return true;
 }
 bool ValueSetExpr::check_contain(Value &other_value) const {
   // TODO
