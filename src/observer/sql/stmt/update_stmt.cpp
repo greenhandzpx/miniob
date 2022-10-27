@@ -173,7 +173,6 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
       Tuple *tuple;
       int j = 0;
       while ((rc = ExecuteStage::normal_select_handler(s_stmt, tuple, project_oper)) == RC::SUCCESS) {
-        
         if (tuple->cell_num() != 1) {
           printf("Operand should contain 1 column(s)\n");
           rc = RC::SUB_COL_ERROR;
@@ -186,13 +185,13 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
           return rc;
         }
       }
-
+      
       if (j == 0) {
         printf("Subquery returns less than 1 row\n");
         rc = RC::SUB_ROW_ERROR;
         return rc;
       }
-
+      
       TupleCell* cellptr = new TupleCell;
       TupleCell cell = *cellptr;
       tuple->cell_at(0, cell);
@@ -203,7 +202,7 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
     }
   }
 
-  return rc;
+  return RC::SUCCESS;
 }
 
 
