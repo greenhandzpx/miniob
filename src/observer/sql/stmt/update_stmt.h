@@ -26,7 +26,12 @@ public:
 
   UpdateStmt() = default;
   // UpdateStmt(Table *table, Value *values, int value_amount);
-  UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt, const char *attribute_name);
+  // UpdateStmt(Table *table, const Value *values, int value_amount, FilterStmt *filter_stmt, const char *attribute_name);
+
+
+  // *************************************************upselect*********************************************************
+  UpdateStmt(Table *table, Value *values, int value_amount, FilterStmt *filter_stmt, char **attribute_name, const size_t values_num);
+  // *************************************************upselect*********************************************************
 
 public:
   static RC create(Db *db, const Updates &update_sql, Stmt *&stmt);
@@ -37,13 +42,28 @@ public:
   int value_amount() const { return value_amount_; }
   StmtType type() const override { return StmtType::UPDATE; }
   FilterStmt *filter_stmt() const { return filter_stmt_; }
-  const char *attribute_name() const { return attribute_name_; }
+  // const char *attribute_name() const { return attribute_name_; }
+
+  // *************************************************upselect*********************************************************
+  const char *attribute_name(int i) const { return attribute_name_[i]; }
+  size_t values_num() { return values_num_; }
+  // *************************************************upselect*********************************************************
+
 
 private:
   Table *table_ = nullptr;
   const Value *values_ = nullptr;
   int value_amount_ = 0;
   FilterStmt *filter_stmt_ = nullptr;
-  const char *attribute_name_;
+  // const char *attribute_name_;
+
+  // *************************************************upselect*********************************************************
+  char **attribute_name_;
+  size_t values_num_;
+  // *************************************************upselect*********************************************************
 };
+
+
+
+
 
