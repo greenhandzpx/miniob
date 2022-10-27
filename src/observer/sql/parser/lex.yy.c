@@ -347,14 +347,9 @@ static void yy_fatal_error (yyconst char msg[] ,yyscan_t yyscanner );
 	yyg->yy_hold_char = *yy_cp; \
 	*yy_cp = '\0'; \
 	yyg->yy_c_buf_p = yy_cp;
-<<<<<<< HEAD
+
 #define YY_NUM_RULES 71
 #define YY_END_OF_BUFFER 72
-=======
-
-#define YY_NUM_RULES 68
-#define YY_END_OF_BUFFER 69
->>>>>>> updatesel
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -362,11 +357,7 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-<<<<<<< HEAD
-static const flex_int16_t yy_accept[210] =
-=======
-static yyconst flex_int16_t yy_accept[203] =
->>>>>>> updatesel
+static yyconst flex_int16_t yy_accept[210] =
     {   0,
         0,    0,    0,    0,   72,   70,    1,    2,   70,   70,
        56,   57,    7,   58,   70,    6,    3,    5,   62,   59,
@@ -434,11 +425,7 @@ static yyconst flex_int32_t yy_meta[45] =
         3,    3,    3,    3
     } ;
 
-<<<<<<< HEAD
-static const flex_int16_t yy_base[214] =
-=======
-static yyconst flex_int16_t yy_base[207] =
->>>>>>> updatesel
+static yyconst flex_int16_t yy_base[214] =
     {   0,
         0,    0,    0,    0,  399,  400,  400,  400,  381,   39,
       400,  400,  400,  400,  383,  400,   33,  400,   31,  400,
@@ -466,11 +453,7 @@ static yyconst flex_int16_t yy_base[207] =
       352,  215,   52
     } ;
 
-<<<<<<< HEAD
-static const flex_int16_t yy_def[214] =
-=======
-static yyconst flex_int16_t yy_def[207] =
->>>>>>> updatesel
+static yyconst flex_int16_t yy_def[214] =
     {   0,
       209,    1,  210,  210,  209,  209,  209,  209,  209,  211,
       209,  209,  209,  209,  209,  209,  209,  209,  209,  209,
@@ -498,11 +481,7 @@ static yyconst flex_int16_t yy_def[207] =
       209,  209,  209
     } ;
 
-<<<<<<< HEAD
-static const flex_int16_t yy_nxt[445] =
-=======
-static yyconst flex_int16_t yy_nxt[431] =
->>>>>>> updatesel
+static yyconst flex_int16_t yy_nxt[445] =
     {   0,
         6,    7,    8,    7,    9,   10,    6,   11,   12,   13,
        14,   15,   16,   17,   18,   19,   20,   21,   22,   23,
@@ -555,11 +534,7 @@ static yyconst flex_int16_t yy_nxt[431] =
       209,  209,  209,  209
     } ;
 
-<<<<<<< HEAD
-static const flex_int16_t yy_chk[445] =
-=======
-static yyconst flex_int16_t yy_chk[431] =
->>>>>>> updatesel
+static yyconst flex_int16_t yy_chk[445] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
@@ -639,16 +614,9 @@ extern double atof();
 #endif // YYDEBUG
 
 #define RETURN_TOKEN(token) debug_printf("%s\n",#token);return token
-<<<<<<< HEAD
+/* Prevent the need for linking with -lfl */
+
 #line 620 "lex.yy.c"
-/* Prevent the need for linking with -lfl */
-
-#line 623 "lex.yy.c"
-=======
-/* Prevent the need for linking with -lfl */
-
-#line 614 "lex.yy.c"
->>>>>>> updatesel
 
 #define INITIAL 0
 #define STR 1
@@ -885,7 +853,7 @@ YY_DECL
 #line 35 "lex_sql.l"
 
 
-#line 851 "lex.yy.c"
+#line 857 "lex.yy.c"
 
     yylval = yylval_param;
 
@@ -915,17 +883,7 @@ YY_DECL
 		yy_load_buffer_state(yyscanner );
 		}
 
-<<<<<<< HEAD
-	{
-#line 35 "lex_sql.l"
-
-
-#line 901 "lex.yy.c"
-
-	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
-=======
 	while ( 1 )		/* loops until end-of-file is reached */
->>>>>>> updatesel
 		{
 		yy_cp = yyg->yy_c_buf_p;
 
@@ -950,13 +908,8 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-<<<<<<< HEAD
 				if ( yy_current_state >= 210 )
-					yy_c = yy_meta[yy_c];
-=======
-				if ( yy_current_state >= 203 )
 					yy_c = yy_meta[(unsigned int) yy_c];
->>>>>>> updatesel
 				}
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 			++yy_cp;
@@ -1341,11 +1294,7 @@ YY_RULE_SETUP
 #line 124 "lex_sql.l"
 ECHO;
 	YY_BREAK
-<<<<<<< HEAD
-#line 1314 "lex.yy.c"
-=======
-#line 1277 "lex.yy.c"
->>>>>>> updatesel
+#line 1298 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STR):
 	yyterminate();
@@ -1640,13 +1589,8 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-<<<<<<< HEAD
 			if ( yy_current_state >= 210 )
-				yy_c = yy_meta[yy_c];
-=======
-			if ( yy_current_state >= 203 )
 				yy_c = yy_meta[(unsigned int) yy_c];
->>>>>>> updatesel
 			}
 		yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 		}
@@ -1674,19 +1618,11 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-<<<<<<< HEAD
 		if ( yy_current_state >= 210 )
-			yy_c = yy_meta[yy_c];
-		}
-	yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
-	yy_is_jam = (yy_current_state == 209);
-=======
-		if ( yy_current_state >= 203 )
 			yy_c = yy_meta[(unsigned int) yy_c];
 		}
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-	yy_is_jam = (yy_current_state == 202);
->>>>>>> updatesel
+	yy_is_jam = (yy_current_state == 209);
 
 	return yy_is_jam ? 0 : yy_current_state;
 }
