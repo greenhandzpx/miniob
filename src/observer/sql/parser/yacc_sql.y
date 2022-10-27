@@ -560,6 +560,14 @@ aggregation_field_attr:
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
+	}
+	| ID DOT ID attr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, $3);
+		printf("aggregation: get a attr %s\n", $3);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
 	};
 
 aggregate_op: 

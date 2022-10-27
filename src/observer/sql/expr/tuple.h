@@ -254,6 +254,10 @@ public:
     tuples_.pop_back();
   }
 
+  size_t size() {
+    return tuples_.size();
+  }
+
 
 private:
   int cell_num_ = 0;

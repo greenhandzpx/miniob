@@ -66,16 +66,16 @@ RC PredicateOperator::next()
     //   delete current_tuple_;
     // }
     if (parent_tuple_ != nullptr) {
+      if (current_tuple_->size() > children_.size()) {
+        current_tuple_->pop_back();
+      }
+      printf("sub query has a parent tuple\n");
       current_tuple_->push_back(parent_tuple_);
       // tuple_stack_.push_back(parent_tuple_);
     }
     // printf("get a new composite tuple\n");
     // current_tuple_ = new CompositeTuple(tuple_stack_);
 
-    if (parent_tuple_ != nullptr) {
-      current_tuple_->pop_back();
-      // tuple_stack_.pop_back();
-    }
     // Tuple *tuple = current_tuple();
     if (nullptr == current_tuple_) {
       rc = RC::INTERNAL;
@@ -85,6 +85,11 @@ RC PredicateOperator::next()
 
     if (do_predicate(static_cast<CompositeTuple &>(*current_tuple_))) {
       return rc;
+    }
+
+    if (parent_tuple_ != nullptr) {
+      current_tuple_->pop_back();
+      // tuple_stack_.pop_back();
     }
   }
   return rc;
@@ -101,12 +106,13 @@ RC PredicateOperator::next_when_multi_tables() {
 
   RC rc = RC::SUCCESS;
 
-  if (tuple_stack_.size() < children_.size()) {
+  int target_tuple_num = children_.size() + (parent_tuple_ ? 1 : 0);
+  if (tuple_stack_.size() != target_tuple_num) {
     // this must be the first time to call 
-    if (tuple_stack_.size() != 0) {
-      LOG_WARN("something error happens");
-      return RC::INTERNAL;
-    }
+    // if (tuple_stack_.size() != 0) {
+    //   LOG_WARN("something error happens");
+    //   return RC::INTERNAL;
+    // }
     for (auto child: children_) {
       if (child->next() != RC::SUCCESS) {
         LOG_WARN("shouldn't be empty table in predicate chilren");
@@ -244,8 +250,13 @@ bool PredicateOperator::do_predicate(CompositeTuple &tuple)
 
         if (!filter_result) {
           if (left_index != -1 || right_index != -1) {
+
             int target_index = left_index > right_index ? left_index : right_index;
 
+            if (target_index == children_.size()) {
+              // this tuple is from parent;
+              return false;
+            }
             has_accelerated_ = true;
 
             // if (target_index == children_.size() - 1) {
