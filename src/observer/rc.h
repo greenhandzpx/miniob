@@ -223,6 +223,14 @@ enum RC {
   NOTADB,           /* File opened that is not a database file */
   FILE_ERROR,       /* File error */
   LOGBUF,           /* clog buffer error */
+
+  //*******************************upselect******************************
+  SUB_ROW_ERROR,    
+  SUB_COL_ERROR,    
+  SUB_SAME_TABLE,   
+  SUB_BAD_TYPE,
+  //*******************************upselect******************************
+
   NOTICE = 100,     /* Notifications from log() */
 
   /* buffer pool part */
