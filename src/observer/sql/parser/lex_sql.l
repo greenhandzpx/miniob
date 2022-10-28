@@ -97,6 +97,8 @@ QUOTE            [\'\"]
 
 [Uu][Nn][Ii][Qq][Uu][Ee]                             RETURN_TOKEN(UNIQUE);
 
+[Oo][Rr]                                             RETURN_TOKEN(OR);
+
 
 "("                                                  RETURN_TOKEN(LBRACE);
 ")"                                                  RETURN_TOKEN(RBRACE);

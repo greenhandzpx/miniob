@@ -56,7 +56,9 @@ public:
   FilterType get_type() const {
     return filter_type_;
   }
-
+  bool get_and() const {
+    return is_and_;
+  }
   void set_left(Expression *expr)
   {
     left_ = expr;
@@ -64,6 +66,10 @@ public:
   void set_right(Expression *expr)
   {
     right_ = expr;
+  }
+  void set_and(bool is_and)
+  {
+    is_and_ = is_and;
   }
   Expression *left() const
   {
@@ -81,6 +87,7 @@ private:
   Expression *left_ = nullptr;
   Expression *right_ = nullptr;
   FilterType filter_type_;
+  bool is_and_;
 };
 
 class FilterStmt 

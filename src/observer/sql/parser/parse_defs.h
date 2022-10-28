@@ -106,6 +106,8 @@ typedef struct _Condition {
   Value right_value_set[MAX_NUM];
   size_t right_value_set_num;
   Value right_value;   // right-hand side value if right_is_attr = FALSE
+
+  int is_and;  // TRUE if: conditino1 and condition2 (condition2 refers to this condition)
 } Condition;
 
 // struct of select

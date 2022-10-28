@@ -104,6 +104,7 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
   condition->right_is_attr = right_is_attr;
   condition->right_is_sub_query = right_is_sub_query;
   condition->right_is_set = right_is_set;
+  condition->is_and = 1;
 
   if (condition_type != Exists && condition_type != NotExists) {
     if (left_is_attr) {

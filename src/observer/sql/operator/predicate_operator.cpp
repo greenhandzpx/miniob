@@ -176,10 +176,29 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
     return RC::SUCCESS;
   }
 
+  /**
+    Since we now need to suppport `AND` and `OR`,
+    we cannot return as soon as we get a condition that hasn't been met
+    because we need to wait to see whether there is any condition that is met
+    between `OR`
+  */
+  bool has_not_met = false;  
   for (const FilterUnit *filter_unit : filter_stmt_->filter_units()) {
     Expression *left_expr = filter_unit->left();
     Expression *right_expr = filter_unit->right();
 
+    if (has_not_met) {
+      // we should iterate until find a `OR` condition
+      if (filter_unit->get_and()) {
+        continue;
+      } 
+      has_not_met = false;
+    } else {
+      if (!filter_unit->get_and()) {
+        res = true;
+        return RC::SUCCESS;
+      }
+    }
 
     switch (filter_unit->get_type()) {
       case Comparison: {
@@ -214,14 +233,21 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         if (left_cell.attr_type() == AttrType::NULLS || right_cell.attr_type() == AttrType::NULLS) {
           if (comp == LOGICAL_IS) {
             res = left_cell.attr_type() == right_cell.attr_type();
-            return RC::SUCCESS;
+            if (!res) {
+              has_not_met = true;
+            }
           } else if (comp == LOGICAL_IS_NOT) {
             res = left_cell.attr_type() != right_cell.attr_type();
-            return RC::SUCCESS;
+            if (!res) {
+              has_not_met = true;
+            }
+            // return RC::SUCCESS;
           } else {
             res = false;
-            return RC::SUCCESS;
+            has_not_met = true;
+            // return RC::SUCCESS;
           }
+          break;
         }
 
         const int compare = left_cell.compare(right_cell);
@@ -265,14 +291,28 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         }
 
         if (!filter_result) {
-          if (left_index != -1 || right_index != -1) {
+          if ((left_index != -1 || right_index != -1)) {
+            bool has_or = false;
+            auto filter_units = filter_stmt_->filter_units();
+            for (int i = 0; i < filter_stmt_->filter_units().size(); ++i) {
+              if (!filter_units[i]->get_and()) {
+                has_or = true;
+                break;
+              }
+            }
+            if (has_or) {
+              has_not_met = true;
+              break;
+            }
 
             int target_index = left_index > right_index ? left_index : right_index;
 
             if (target_index == children_.size()) {
               // this tuple is from parent;
               res = false;
-              return RC::SUCCESS;
+              has_not_met = true;
+              break;
+              // return RC::SUCCESS;
             }
             has_accelerated_ = true;
 
@@ -307,7 +347,8 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
               }
               is_over_ = true;
               res = false;
-              return RC::SUCCESS;
+              has_not_met = true;
+              // return RC::SUCCESS;
             }
             ++tmp;
             for (; tmp < n; ++tmp) {
@@ -330,7 +371,8 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
             // }
           }          
           res = false;
-          return RC::SUCCESS;
+          has_not_met = true;
+          // return RC::SUCCESS;
         }
       } break;
 
@@ -341,7 +383,9 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         // 左值为null,返回false
         if (left_cell.attr_type() == AttrType::NULLS) {
           res = false;
-          return RC::SUCCESS;
+          has_not_met = true;
+          break;
+          // return RC::SUCCESS;
         }
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
@@ -360,7 +404,8 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
 
         if (!exists) {
           res = false;
-          return RC::SUCCESS;
+          has_not_met = true;
+          // return RC::SUCCESS;
         }
       } break;
       case NotContain: {
@@ -370,7 +415,9 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         // 左值为null,返回false
         if (left_cell.attr_type() == AttrType::NULLS) {
           res = false;
-          return RC::SUCCESS;
+          has_not_met = true;
+          break;
+          // return RC::SUCCESS;
         }
 
         auto right_sub_query_expr = dynamic_cast<SubQueryExpr*>(right_expr);
@@ -389,7 +436,8 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
 
         if (!notct) {
           res = false;
-          return RC::SUCCESS;
+          has_not_met = true;
+          // return RC::SUCCESS;
         }
       } break;
 
@@ -407,12 +455,14 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
         if (!exists) {
           if (filter_unit->get_type() == Exists) {
             res = false;
-            return RC::SUCCESS;
+            has_not_met = true;
+            // return RC::SUCCESS;
           }
         } else {
           if (filter_unit->get_type() == NotExists) {
             res = false;
-            return RC::SUCCESS;
+            has_not_met = true;
+            // return RC::SUCCESS;
           }
         }
       } break;
@@ -420,7 +470,12 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
     }
 
   }
-  res = true;
+
+  if (has_not_met) {
+    res = false;
+  } else {
+    res = true;
+  }
   return RC::SUCCESS;
 }
 

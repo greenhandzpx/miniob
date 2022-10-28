@@ -14,6 +14,7 @@ typedef struct ParserContext {
   Query * ssql;
   size_t select_length;
   size_t condition_length;
+  size_t last_conditino_seqno;
   size_t from_length;
 
   size_t tuple_num;
@@ -57,6 +58,7 @@ void yyerror(yyscan_t scanner, const char *str)
   query_reset(context->ssql);
   context->ssql->flag = SCF_ERROR;
   context->condition_length = 0;
+  context->last_conditino_seqno = 0;
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
@@ -147,6 +149,8 @@ ParserContext *get_context(yyscan_t scanner)
 		ORDER
 		BY
 		ASC
+
+		OR
 
 %union {
   struct _Attr *attr;
@@ -463,6 +467,7 @@ delete:		/*  delete 语句的语法解析树*/
 			deletes_set_conditions(&CONTEXT->ssql->sstr.deletion, 
 					CONTEXT->conditions, CONTEXT->condition_length);
 			CONTEXT->condition_length = 0;	
+			CONTEXT->last_conditino_seqno = 0;
     }
     ;
 update:			/*  update 语句的语法解析树*/
@@ -472,6 +477,7 @@ update:			/*  update 语句的语法解析树*/
 			updates_init(&CONTEXT->ssql->sstr.update, $2, CONTEXT->attribute_name, CONTEXT->values, CONTEXT->upselect_num,
 					CONTEXT->conditions, CONTEXT->condition_length, CONTEXT->upselect_vec);
 			CONTEXT->condition_length = 0;
+			CONTEXT->last_conditino_seqno = 0;
 			CONTEXT->value_length = 0;
 			CONTEXT->upselect_num = 0;
 		}
@@ -744,6 +750,21 @@ condition_list:
     /* empty */
     | AND condition condition_list {
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
+				if (CONTEXT->last_conditino_seqno == 0) {
+					CONTEXT->last_conditino_seqno = CONTEXT->condition_length;
+				}
+				CONTEXT->conditions[CONTEXT->last_conditino_seqno-1].is_and = 1;
+				CONTEXT->last_conditino_seqno--;
+				printf("get an and condition: seqno %d\n", CONTEXT->last_conditino_seqno);
+			}
+    | OR condition condition_list {
+				if (CONTEXT->last_conditino_seqno == 0) {
+					CONTEXT->last_conditino_seqno = CONTEXT->condition_length;
+				}
+				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
+				CONTEXT->conditions[CONTEXT->last_conditino_seqno-1].is_and = 0;
+				CONTEXT->last_conditino_seqno--;
+				printf("get an or condition: seqno %d\n", CONTEXT->last_conditino_seqno);
 			}
     ;
 condition:
@@ -916,6 +937,24 @@ condition:
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
+	| ID DOT ID IN sub_query {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+
+		Condition condition;
+		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+		
+	}
+	| ID DOT ID NOT IN sub_query {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+
+		Condition condition;
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+
+	}
 	| ID IN LBRACE value value_list RBRACE {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);
@@ -930,6 +969,28 @@ condition:
 	| ID NOT IN LBRACE value value_list RBRACE {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);
+
+		Condition condition;
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+
+	}
+	| ID DOT ID IN LBRACE value value_list RBRACE {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+
+		Condition condition;
+		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+			CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length = 0;
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+
+	}
+	| ID DOT ID NOT IN LBRACE value value_list RBRACE {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
 		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
