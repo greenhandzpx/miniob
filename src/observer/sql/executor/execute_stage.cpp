@@ -770,6 +770,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       for (int i = 0; i < scan_opers.size(); ++i) {
         delete scan_opers[i];
       }
+      // something wrong happened when iterating the tuples
+      LOG_WARN("something wrong happened when iterating the tuples");
+      session_event->set_response("FAILURE\n");
       return rc;
     }
     
@@ -913,6 +916,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
       if (rc != RC::RECORD_EOF) {
         // something wrong happened when iterating the tuples
+        LOG_WARN("something wrong happened when iterating the tuples");
         session_event->set_response("FAILURE\n");
         return rc;
       }

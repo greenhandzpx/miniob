@@ -110,6 +110,10 @@ RC SubQueryExpr::get_value(const Tuple &tuple, TupleCell & cell) const {
       rc = tmp_tuple->cell_at(0, cell);
     }
 
+    if (rc != RC::RECORD_EOF) {
+      return RC::GENERIC_ERROR;
+    }
+
     if (cnt == 0) {
       // no result of this sub query
       LOG_WARN("no result of the sub query");
@@ -196,6 +200,10 @@ RC SubQueryExpr::check_contain_or_exist(Tuple *parent_tuple, bool check_contain,
     }
   }
   
+  if (rc != RC::RECORD_EOF) {
+    return RC::GENERIC_ERROR;
+  }
+
   res = false;
   return RC::SUCCESS;
 
@@ -296,6 +304,10 @@ RC SubQueryExpr::check_not_contain_or_exist(Tuple *parent_tuple, bool check_cont
       res = false;
       return RC::SUCCESS;
     }
+  }
+
+  if (rc != RC::RECORD_EOF) {
+    return RC::GENERIC_ERROR;
   }
   res = true;
   return RC::SUCCESS;
