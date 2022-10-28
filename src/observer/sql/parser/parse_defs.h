@@ -108,6 +108,16 @@ typedef struct _Condition {
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 } Condition;
 
+// having子句专用无敌condition
+typedef struct _having_condition
+{
+  AggregationOp aggr;
+  RelAttr attr;
+  CompOp cmpOp;
+  Value value;
+} Having_Condition;
+
+
 // struct of select
 typedef struct Selects {
   size_t attr_num;                // Length of attrs in Select clause
@@ -118,12 +128,21 @@ typedef struct Selects {
   Condition conditions[MAX_NUM];  // conditions in Where clause
 
   size_t aggregation_num;
+  size_t aggregation_attr_num;
   AggregationOp aggregation_ops[MAX_NUM];
+  RelAttr aggregation_attrs[MAX_NUM];
   
   size_t order_attr_num;
   RelAttr order_attrs[MAX_NUM];    // attrs in order by
   int is_asc[MAX_NUM];                      // is order by asc
   int is_order;                    // 是否排序
+
+  size_t group_attr_num;
+  RelAttr group_attrs[MAX_NUM];
+  int is_group;
+  size_t having_condition_num;
+  Having_Condition having_conditions[MAX_NUM];
+  int is_having; 
 } Selects;
 
 // struct of insert
@@ -264,6 +283,9 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
     size_t value_set_num);
 void condition_destroy(Condition *condition);
 
+void having_condition_init(Having_Condition *condition, AggregationOp aggr, CompOp cmpop, Value *value, RelAttr *attr);
+void having_condition_destroy(Having_Condition *condition);
+
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_nullable);
 void attr_info_destroy(AttrInfo *attr_info);
 
@@ -272,8 +294,13 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
+void selects_append_aggrattr(Selects *selects, RelAttr *rel_attr);
 void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc);
+void selects_append_groupattr(Selects *selects, RelAttr *rel_attr);
+void selects_append_havingcondition(Selects *selects, Having_Condition *condition); 
 void selects_set_order(Selects *selects, int order);
+void selects_set_group(Selects *selects, int group);
+void selects_set_having(Selects *selects, int having);
 void selects_destroy(Selects *selects);
 
 // void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);

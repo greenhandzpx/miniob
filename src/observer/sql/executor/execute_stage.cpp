@@ -264,12 +264,12 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
       } break;
       default: break;
     }
-    size_t n = select_stmt->query_fields().size();
+    size_t n = select_stmt->aggr_fields().size();
     printf("n : %zu\n", n);
-    if (select_stmt->query_fields()[n-i-1].meta() == nullptr) {
+    if (select_stmt->aggr_fields()[n-i-1].meta() == nullptr) {
       os << "*)";
     } else {
-      os << select_stmt->query_fields()[n-i-1].meta()->name() << ")";
+      os << select_stmt->aggr_fields()[n-i-1].meta()->name() << ")";
     }
   }
   os << '\n';
@@ -508,12 +508,12 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
       // *static_cast<float*>(values[i].data) = 0;
 
     } else {
-      size_t n = select_stmt->query_fields().size();
-      if (i >= select_stmt->query_fields().size()) {
+      size_t n = select_stmt->aggr_fields().size();
+      if (i >= select_stmt->aggr_fields().size()) {
         LOG_ERROR("aggregation: field count doesn't match the op count");
         return RC::MISMATCH;
       }
-      switch (select_stmt->query_fields()[n-i-1].attr_type()) {
+      switch (select_stmt->aggr_fields()[n-i-1].attr_type()) {
         case AttrType::FLOATS: {
           values[i].type = AttrType::FLOATS;
           values[i].data = nullptr;
@@ -573,8 +573,8 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
     for (int i = 0; i < aggregation_ops.size(); ++i) {
       TupleCell cell;
 
-      size_t n = select_stmt->query_fields().size();
-      if (select_stmt->query_fields()[n-i-1].meta() != nullptr && tuple->find_cell(select_stmt->query_fields()[n-i-1], cell) != RC::SUCCESS) {
+      size_t n = select_stmt->aggr_fields().size();
+      if (select_stmt->aggr_fields()[n-i-1].meta() != nullptr && tuple->find_cell(select_stmt->aggr_fields()[n-i-1], cell) != RC::SUCCESS) {
         LOG_WARN("cannot get the cell value");
         break;
       }
