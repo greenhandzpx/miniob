@@ -107,6 +107,21 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
       return rc;
     }
     left = new FieldExpr(table, field);
+  } else if (condition.left_is_sub_query) {
+    assert(condition.left_select != nullptr);
+    Stmt *stmt;
+    std::vector<std::pair<std::string, Table*>> parent_tables(tables->begin(), tables->end());
+    // if ((rc = SelectStmt::create(db, *condition.right_select, stmt)) != RC::SUCCESS) {
+    //   return rc;
+    // }
+    if ((rc = SelectStmt::create(db, *condition.left_select, stmt, &parent_tables)) != RC::SUCCESS) {
+      return rc;
+    }
+
+    SelectStmt *select_stmt = reinterpret_cast<SelectStmt*>(stmt);
+
+    left = new SubQueryExpr(select_stmt); 
+
   } else {
     left = new ValueExpr(condition.left_value);
   }
@@ -137,58 +152,64 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
     SelectStmt *select_stmt = reinterpret_cast<SelectStmt*>(stmt);
 
-    if (select_stmt->aggregation_ops().size() > 0) {
 
-      // if the sub query is aggregation, we can compute the result at first
-      // in order not to compute it repeatly later on
+    /**
+      in complex sub query, aggregation cannot be computed at this time, since the aggregation
+      may alse need the tuple come from the parent (f**k complex sub query)
+    */
+    right = new SubQueryExpr(select_stmt); 
 
-      if (select_stmt->aggregation_ops().size() != 1) {
-        // TODO: not sure 
-        return RC::GENERIC_ERROR;
-      }
+    // if (select_stmt->aggregation_ops().size() > 0) {
 
-      PredicateOperator pred_oper(select_stmt->filter_stmt());
+    //   // if the sub query is aggregation, we can compute the result at first
+    //   // in order not to compute it repeatly later on
 
-      std::vector<Operator *> scan_opers(select_stmt->tables().size());
-      for (int i = scan_opers.size()-1; i >= 0; --i) {
-        // scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-        if (nullptr == scan_opers[i]) {
-          scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
-        }
-        printf("%d scan op table %s\n", i, select_stmt->tables()[i]->name());
-        pred_oper.add_child(scan_opers[i]);
-      }
+    //   if (select_stmt->aggregation_ops().size() != 1) {
+    //     // TODO: not sure 
+    //     return RC::GENERIC_ERROR;
+    //   }
 
-      // TODO memory leak (scan_opers)
+    //   PredicateOperator pred_oper(select_stmt->filter_stmt());
 
-      ProjectOperator project_oper;
-      project_oper.add_child(&pred_oper);
-      bool is_single_table = select_stmt->tables().size() == 1;
-      // for (int i = select_stmt->query_fields().size()-1; i >= 0; --i) {
-      //   project_oper.add_projection(select_stmt->query_fields()[i].table(), select_stmt->query_fields()[i].meta(), is_single_table);
-      // }
-      for (const Field &field : select_stmt->query_fields()) {
-        project_oper.add_projection(field.table(), field.meta(), is_single_table);
-      }
-      rc = project_oper.open();
-      if (rc != RC::SUCCESS) {
-        LOG_WARN("failed to open operator");
-        return rc;
-      }
+    //   std::vector<Operator *> scan_opers(select_stmt->tables().size());
+    //   for (int i = scan_opers.size()-1; i >= 0; --i) {
+    //     // scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+    //     if (nullptr == scan_opers[i]) {
+    //       scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+    //     }
+    //     printf("%d scan op table %s\n", i, select_stmt->tables()[i]->name());
+    //     pred_oper.add_child(scan_opers[i]);
+    //   }
 
-      std::vector<Value> values(select_stmt->aggregation_ops().size());
-      // Value value;
-      ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
-      right = new ValueExpr(values[0]);
+    //   // TODO memory leak (scan_opers)
 
-      
-    } else {
+    //   ProjectOperator project_oper;
+    //   project_oper.add_child(&pred_oper);
+    //   bool is_single_table = select_stmt->tables().size() == 1;
+    //   // for (int i = select_stmt->query_fields().size()-1; i >= 0; --i) {
+    //   //   project_oper.add_projection(select_stmt->query_fields()[i].table(), select_stmt->query_fields()[i].meta(), is_single_table);
+    //   // }
+    //   for (const Field &field : select_stmt->query_fields()) {
+    //     project_oper.add_projection(field.table(), field.meta(), is_single_table);
+    //   }
+    //   rc = project_oper.open();
+    //   if (rc != RC::SUCCESS) {
+    //     LOG_WARN("failed to open operator");
+    //     return rc;
+    //   }
 
-      // if the sub query is normal select, compute the tuple set every time
-      // we get a tuple from the parent query(and put it into the sub query)
+    //   std::vector<Value> values(select_stmt->aggregation_ops().size());
+    //   // Value value;
+    //   ExecuteStage::aggregation_select_handler(dynamic_cast<SelectStmt*>(select_stmt), values, project_oper);
+    //   right = new ValueExpr(values[0]);
 
-      right = new SubQueryExpr(select_stmt); 
-    }
+    // } else {
+
+    //   // if the sub query is normal select, compute the tuple set every time
+    //   // we get a tuple from the parent query(and put it into the sub query)
+
+    //   right = new SubQueryExpr(select_stmt); 
+    // }
 
   } else if (condition.right_is_set) {
 

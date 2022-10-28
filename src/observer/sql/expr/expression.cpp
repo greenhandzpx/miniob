@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/table_scan_operator.h"
 // #include "sql/expr/tuple.h"
 #include "sql/executor/execute_stage.h"
+#include "sql/parser/parse_defs.h"
 
 
 RC FieldExpr::get_value(const Tuple &tuple, TupleCell &cell) const
@@ -66,24 +67,55 @@ RC SubQueryExpr::get_value(const Tuple &tuple, TupleCell & cell) const {
 
   Tuple *tmp_tuple;
 
-  int cnt = 0;
-  while ((rc = ExecuteStage::normal_select_handler(select_stmt_, tmp_tuple, project_oper)) == RC::SUCCESS) {
-    if (cnt == 1 || tmp_tuple->cell_num() != 1) {
-      // when invoking get_value of a sub query expression
-      // the result must be exactly only one row
-      LOG_WARN("more than one result of the sub query");
-      printf("more than one result of the sub query\n");
+  if (select_stmt_->aggregation_ops().size() > 0) {
+    if (select_stmt_->aggregation_ops().size() > 1) {
+      LOG_WARN("more than one result of the sub query aggregation");
+      printf("more than one result of the sub query aggregation\n");
       return RC::GENERIC_ERROR;
     }
-    cnt = 1;
-    rc = tmp_tuple->cell_at(0, cell);
-  }
 
-  if (cnt == 0) {
-    // no result of this sub query
-    LOG_WARN("no result of the sub query");
-    printf("no result of the sub query\n");
-    return RC::GENERIC_ERROR;
+    std::vector<Value> values(1);
+    // aggregation select
+    if ((rc = ExecuteStage::aggregation_select_handler(select_stmt_, values, project_oper)) != RC::SUCCESS) {
+      return rc;
+    }
+    cell.set_type(values[0].type);
+    cell.set_data((char *)values[0].data);
+    // TODO: not sure
+    switch (values[0].type) {
+      case FLOATS:
+      case INTS: {
+        cell.set_length(sizeof(int));
+      } break;
+      case CHARS: {
+        cell.set_length(strlen((char *)values[0].data));
+      } break;
+      default: break;
+    }
+    
+  } else {
+
+    // normal select
+
+    int cnt = 0;
+    while ((rc = ExecuteStage::normal_select_handler(select_stmt_, tmp_tuple, project_oper)) == RC::SUCCESS) {
+      if (cnt == 1 || tmp_tuple->cell_num() != 1) {
+        // when invoking get_value of a sub query expression
+        // the result must be exactly only one row
+        LOG_WARN("more than one result of the sub query");
+        printf("more than one result of the sub query\n");
+        return RC::GENERIC_ERROR;
+      }
+      cnt = 1;
+      rc = tmp_tuple->cell_at(0, cell);
+    }
+
+    if (cnt == 0) {
+      // no result of this sub query
+      LOG_WARN("no result of the sub query");
+      printf("no result of the sub query\n");
+      return RC::GENERIC_ERROR;
+    }
   }
   
   return RC::SUCCESS;

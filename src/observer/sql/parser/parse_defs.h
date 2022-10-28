@@ -85,11 +85,13 @@ typedef struct _Value {
 struct Selects;
 
 typedef struct _Condition {
+  int left_is_sub_query;
   int left_is_attr;    // TRUE if left-hand side is an attribute
                        // 1时，操作符左边是属性名，0时，是属性值
   // int left_is_nothing;  // when the condition type is `Exists`
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
+  struct Selects *left_select; // right-hand side sub query(i.e. select query)
 
   // int is_comp;         // is comparison condition
   // int is_in;           // is in condition
@@ -270,8 +272,8 @@ int value_init_date(Value *value, const char *v);
 void value_init_null(Value *value);
 void value_destroy(Value *value);
 
-void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, 
+    Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
     size_t value_set_num);
 void condition_destroy(Condition *condition);
 

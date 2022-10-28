@@ -292,6 +292,13 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
 
         if (!filter_result) {
           if ((left_index != -1 || right_index != -1)) {
+            
+            // accelerate the iteration of multiple children case(used for inner-join )
+
+            /**
+              The following is to find whether there is an `OR` condition,
+              if so, we shouldn't accelerate. 
+            */
             bool has_or = false;
             auto filter_units = filter_stmt_->filter_units();
             for (int i = 0; i < filter_stmt_->filter_units().size(); ++i) {
@@ -309,6 +316,7 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
 
             if (target_index == children_.size()) {
               // this tuple is from parent;
+              // shouldn't accelerate
               res = false;
               has_not_met = true;
               break;
@@ -316,19 +324,6 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
             }
             has_accelerated_ = true;
 
-            // if (target_index == children_.size() - 1) {
-            //   return false;
-            // } else {
-            //   has_accelerated_ = true; 
-            // }
-            // printf("hhh\n");
-            // tuple_to_string(std::cout, *current_tuple_);
-            // std::cout << std::endl;
-            // if (target_index == 1) {
-            //   printf("hhh\n");
-            //   tuple_to_string(std::cout, *current_tuple_);
-            //   std::cout << std::endl;
-            // }
             int tmp = target_index;
             int n = children_.size();
             RC rc;

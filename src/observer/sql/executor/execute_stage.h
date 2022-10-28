@@ -66,6 +66,7 @@ public:
   static RC normal_select_handler(SelectStmt *select_stmt, Tuple *&tuple, ProjectOperator &project_oper);
   /**
     get values(the size of which is the num of aggregation op)
+    note that the values must be resized as the same size of the aggregation ops before
   */
   static RC aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper);
 

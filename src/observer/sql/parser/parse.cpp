@@ -91,8 +91,8 @@ int value_init_date(Value* value, const char* v) {
   return 1;
 }
 
-void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value,
+    Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
     size_t value_set_num)
 // void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
 //     int right_is_attr, int right_is_sub_query, RelAttr *right_attr, Value *right_value, Selects *right_select)
@@ -101,6 +101,7 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
   condition->condition_type = condition_type;
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
+  condition->left_is_sub_query = left_is_sub_query;
   condition->right_is_attr = right_is_attr;
   condition->right_is_sub_query = right_is_sub_query;
   condition->right_is_set = right_is_set;
@@ -109,10 +110,11 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
   if (condition_type != Exists && condition_type != NotExists) {
     if (left_is_attr) {
       condition->left_attr = *left_attr;
+    } else if (left_is_sub_query) {
+      condition->left_select = left_select;
     } else {
       condition->left_value = *left_value;
     }
-
   }
 
   if (right_is_attr) {
@@ -134,7 +136,9 @@ void condition_destroy(Condition *condition)
       condition->condition_type != NotExists) {
     if (condition->left_is_attr) {
       relation_attr_destroy(&condition->left_attr);
-    } else {
+    } else if (condition->left_is_sub_query) {
+      // TODO: memory leak
+    } else  {
       value_destroy(&condition->left_value);
     }
   }
@@ -142,6 +146,7 @@ void condition_destroy(Condition *condition)
   if (condition->right_is_attr) {
     relation_attr_destroy(&condition->right_attr);
   } else if (condition->right_is_sub_query) {
+      // TODO: memory leak
   } else if (condition->right_is_set) {
   }  else {
     value_destroy(&condition->right_value);

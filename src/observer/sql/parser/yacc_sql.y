@@ -35,6 +35,7 @@ typedef struct ParserContext {
   size_t aggregation_num;
 
   Query *sub_query;
+  Query *left_sub_query; // used for select * from (sub query) > (sub_query);
   struct ParserContext *last_context;  // when encounting a sub query, the old context will be placed here(like a stack)
   
   int unique;
@@ -777,7 +778,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
-			condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
@@ -797,7 +798,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 0, NULL, right_value);
-			condition_init(&condition, Comparison, CONTEXT->comp, 0, NULL, left_value, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 0, 0, NULL, left_value, NULL, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;
@@ -820,7 +821,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
@@ -840,7 +841,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
-			condition_init(&condition, Comparison, CONTEXT->comp, 0, NULL, left_value, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 0, 0, NULL, left_value, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 			// $$=( Condition *)malloc(sizeof( Condition));
@@ -863,7 +864,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
-			condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 0, NULL, right_value, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 			// $$=( Condition *)malloc(sizeof( Condition));
@@ -886,7 +887,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
-			condition_init(&condition, Comparison, CONTEXT->comp, 0, NULL, left_value, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 0, 0, NULL, left_value, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;//属性值
@@ -908,7 +909,7 @@ condition:
 
 			Condition condition;
 			// condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
-			condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
+			condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 1, 0, 0, &right_attr, NULL, NULL, NULL, 0);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;		//属性
@@ -924,7 +925,7 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Contain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		
 	}
@@ -933,7 +934,7 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
@@ -942,7 +943,7 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Contain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		
 	}
@@ -951,7 +952,7 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
@@ -960,7 +961,7 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+		condition_init(&condition, Contain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
 		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -971,7 +972,7 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
 		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -982,7 +983,7 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, Contain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+		condition_init(&condition, Contain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
 		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -993,7 +994,7 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, NotContain, CONTEXT->comp, 1, &left_attr, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
+		condition_init(&condition, NotContain, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, 
 			CONTEXT->values, CONTEXT->value_length);
 		CONTEXT->value_length = 0;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -1004,7 +1005,7 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 
 		Condition condition;
-		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| ID comOp sub_query {
@@ -1012,7 +1013,7 @@ condition:
 		relation_attr_init(&left_attr, NULL, $1);
 
 		Condition condition;
-		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| sub_query comOp ID DOT ID {
@@ -1036,7 +1037,7 @@ condition:
 		}
 
 		Condition condition;
-		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| sub_query comOp ID {
@@ -1059,20 +1060,26 @@ condition:
 			default: break;
 		}
 		Condition condition;
-		condition_init(&condition, Comparison, CONTEXT->comp, 1, &left_attr, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Comparison, CONTEXT->comp, 1, 0, &left_attr, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| sub_query comOp sub_query {
+		Condition condition;
+		condition_init(&condition, Comparison, CONTEXT->comp, 0, 1, NULL, NULL, &CONTEXT->left_sub_query->sstr.selection, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+
 	}
 	| EXISTS sub_query {
 
 		Condition condition;
-		condition_init(&condition, Exists, CONTEXT->comp, 0, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, Exists, CONTEXT->comp, 0, 0, NULL, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
 	| NOT EXISTS sub_query {
 
 		Condition condition;
-		condition_init(&condition, NotExists, CONTEXT->comp, 0, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
+		condition_init(&condition, NotExists, CONTEXT->comp, 0, 0, NULL, NULL, NULL, 0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 
 	}
@@ -1082,10 +1089,15 @@ sub_query:
 	LBRACE N select_query RBRACE {
 		// TODO support complex sub query
 		ParserContext *old_context = CONTEXT->last_context;
-		old_context->sub_query = CONTEXT->ssql;
+		printf("swap back old context addr %p\n", CONTEXT->last_context);
+		if (old_context->sub_query) {
+			old_context->left_sub_query = old_context->sub_query;
+			old_context->sub_query = CONTEXT->ssql;
+		} else {
+			old_context->sub_query = CONTEXT->ssql;
+		}
 		*CONTEXT = *old_context;
 		printf("sub query addr %p\n", old_context->sub_query);
-		printf("swap back old context\n");
 	};
 N: /* empty */ {
 	// create a new context
@@ -1098,9 +1110,9 @@ N: /* empty */ {
 	memset(CONTEXT->ssql, 0, sizeof(Query));
 	
 	printf("SWAP OUT sub query addr %p\n", CONTEXT->ssql);
-	old_context->last_context = CONTEXT->last_context;
+	// old_context->last_context = CONTEXT->last_context;
 	CONTEXT->last_context = old_context;
-	printf("swap out old context\n");
+	printf("swap out old context addr %p\n", old_context);
 };
 
 

@@ -495,6 +495,8 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
 
   auto aggregation_ops = select_stmt->aggregation_ops();  
 
+  printf("aggregation op size %d, values size %d\n", aggregation_ops.size(), values.size());
+
   for (size_t i = 0; i < values.size(); ++i) {
     if (aggregation_ops[i] == COUNT_OP) {
       values[i].type = AttrType::INTS;
