@@ -707,7 +707,7 @@ group:
 		selects_set_group(&CONTEXT->ssql->sstr.selection, 0);
 	}
 	| GROUP BY group_attrs having {
-		selects_set_group(&CONTEXT->ssql->sstr.selection, 0);
+		selects_set_group(&CONTEXT->ssql->sstr.selection, 1);
 	}
 	;
 

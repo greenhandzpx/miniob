@@ -50,6 +50,10 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     return GENERIC_ERROR;
   }
 
+  if (select_sql.is_group == 0 && select_sql.attr_num != 0 && select_sql.aggregation_attr_num != 0) {
+    return GENERIC_ERROR;
+  }
+
   bool order = select_sql.is_order == 1 ? true : false;
 
   // collect tables in `from` statement
