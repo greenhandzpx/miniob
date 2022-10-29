@@ -629,23 +629,22 @@ aggregate_attr_list:
 	|COMMA aggregate_attr aggregate_attr_list {
 
 	}
-	/* the followings are error cases */
-	| COMMA STAR aggregate_attr_list {
+	| COMMA STAR attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID aggregate_attr_list{
+	| COMMA ID attr_list{
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID DOT ID  aggregate_attr_list {
+	| COMMA ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID DOT STAR aggregate_attr_list {
+	| COMMA ID DOT STAR attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
@@ -673,8 +672,7 @@ attr_list:
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	} 
-	/* the followings are error case */
-	| COMMA aggregate_attr attr_list {
+	| COMMA aggregate_attr aggregate_attr_list {
 
 	}
   	;

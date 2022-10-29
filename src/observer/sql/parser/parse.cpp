@@ -179,11 +179,12 @@ void attr_info_destroy(AttrInfo *attr_info)
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
-  printf("selects->attr_num %d\n", selects->attr_num);
   selects->attributes[selects->attr_num++] = *rel_attr;
+  printf("attr_num = %d\n", selects->attr_num);
 }
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
 {
+  selects->aggrops_idx_in_fields[selects->aggregation_num] = selects->aggregation_num + selects->attr_num;
   selects->aggregation_ops[selects->aggregation_num++] = aggregation_op;
 }
 void selects_append_relation(Selects *selects, const char *relation_name)
@@ -230,6 +231,7 @@ void selects_set_order(Selects *selects, int order) {
 }
 
 void selects_set_group(Selects *selects, int group) {
+  printf("select set group %d\n", group);
   selects->is_group = group;
 }
 

@@ -68,6 +68,7 @@ public:
     get values(the size of which is the num of aggregation op)
   */
   static RC aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper);
+  static RC group_select_handler(SelectStmt *select_stmt, std::vector<std::vector<Value>> &values, ProjectOperator &project_oper);
 
   // order 老的 需要取所有tuple
   // static RC order_comp(Tuple *tuple1, Tuple *tuple2, std::vector<std::pair<Field, bool>> &order_fields, int &cmp);
@@ -79,6 +80,43 @@ protected:
 private:
   Stage *default_storage_stage_ = nullptr;
   Stage *mem_storage_stage_ = nullptr;
+};
+
+class GroupKey {
+  private:
+  std::vector<TupleCell> keys_;
+
+  public:
+  GroupKey(std::vector<TupleCell> ks) {
+    for (auto k : ks) {
+      keys_.push_back(k);
+    }
+  }
+
+  GroupKey(){}
+
+  std::vector<TupleCell> getKeys() const{
+    return keys_;
+  }
+
+  bool operator==(const GroupKey k) const {
+    std::vector<TupleCell> other_keys = k.getKeys();
+    if (other_keys.size() != keys_.size()) {
+      return false;
+    }
+    auto size = keys_.size();
+    for (int i = 0; i < size; ++i) {
+      if (other_keys[i].attr_type() == AttrType::NULLS && AttrType::NULLS == keys_[i].attr_type()) {
+        continue;
+      }
+      if (other_keys[i].attr_type() == AttrType::NULLS || AttrType::NULLS == keys_[i].attr_type()
+                                                     ||other_keys[i].compare(keys_[i]) != 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 };
 
 void tuple_to_string(std::ostream &os, const Tuple &tuple);

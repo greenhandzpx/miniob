@@ -130,6 +130,7 @@ typedef struct Selects {
   size_t aggregation_num;
   size_t aggregation_attr_num;
   AggregationOp aggregation_ops[MAX_NUM];
+  size_t aggrops_idx_in_fields[MAX_NUM];
   RelAttr aggregation_attrs[MAX_NUM];
   
   size_t order_attr_num;

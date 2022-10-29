@@ -12,11 +12,14 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Longda on 2021/4/13.
 //
 
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 #include "execute_stage.h"
 
@@ -32,6 +35,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "event/session_event.h"
 #include "sql/expr/tuple.h"
+#include "sql/expr/tuple_cell.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
 #include "sql/operator/predicate_operator.h"
@@ -240,9 +244,21 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
   }
 }
 void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
+  auto query_field = select_stmt->query_fields();
   auto aggregation_ops = select_stmt->aggregation_ops();
-  for (int i = 0; i < aggregation_ops.size(); ++i) {
-    AggregationOp aggregation_op = aggregation_ops[i];
+  auto aggrops_idx_in_fields = select_stmt->arggrops_idx_in_fields();
+  auto sum = aggregation_ops.size() + query_field.size();
+  int querycnt = 0, aggropscnt = 0;
+  for (int i = 0; i < sum; ++i) {
+    while (i < aggrops_idx_in_fields[aggropscnt]) {
+      if (i != 0) {
+        os << " | ";
+      }
+      os << query_field[querycnt].field_name();
+      querycnt++;
+      ++i;
+    }
+    AggregationOp aggregation_op = aggregation_ops[aggropscnt];
     if (i != 0) {
       os << " | ";
     }
@@ -266,11 +282,12 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
     }
     size_t n = select_stmt->aggr_fields().size();
     printf("n : %zu\n", n);
-    if (select_stmt->aggr_fields()[n-i-1].meta() == nullptr) {
+    if (select_stmt->aggr_fields()[n-aggropscnt-1].meta() == nullptr) {
       os << "*)";
     } else {
-      os << select_stmt->aggr_fields()[n-i-1].meta()->name() << ")";
+      os << select_stmt->aggr_fields()[n-aggropscnt-1].meta()->name() << ")";
     }
+    aggropscnt++;
   }
   os << '\n';
 }
@@ -317,7 +334,6 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
 IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
-  printf("like filter length is %d \n", filter_units.size());
   if (filter_units.empty() ) {
     return nullptr;
   }
@@ -706,6 +722,270 @@ RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector
   return rc;
 }
 
+RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::vector<Value>> &values, ProjectOperator &project_oper) {
+  RC rc;
+
+  auto aggregation_ops = select_stmt->aggregation_ops();
+  auto query_fields = select_stmt->query_fields();
+  auto aggr_fields = select_stmt->aggr_fields();
+  auto group_fields = select_stmt->group_fields();
+  auto aggr_idxs = select_stmt->arggrops_idx_in_fields();
+  auto query_size = query_fields.size();
+  auto aggr_size = aggr_fields.size();
+  auto group_size = group_fields.size();
+  std::vector<GroupKey> groups;
+  // 分组,同时初始化values数组
+  while ((rc = project_oper.next()) == RC::SUCCESS) {
+    Tuple *tuple = project_oper.current_tuple();
+    if (nullptr == tuple) {
+      rc = RC::INTERNAL;
+      LOG_WARN("failed to get current record. rc = %s", strrc(rc));
+      return rc;
+    }
+    std::vector<TupleCell> group;
+    group.resize(group_size);
+    for (int c = 0; c < group_size; ++c) {
+      TupleCell cell;
+      if (group_fields[group_size - c - 1].meta() != nullptr && tuple->find_cell(group_fields[group_size - c -1], cell) != RC::SUCCESS) {
+        LOG_WARN("cannot get the cell value\n");
+        return RC::INTERNAL;
+      }
+      group[c] = cell;
+    }
+    GroupKey key(group);
+    if (std::find(groups.begin(), groups.end(), key) == groups.end()) {
+      groups.push_back(key);
+      std::vector<Value> vals;
+      int queryfieldcnt = 0, aggrfieldcnt = 0;
+      for (int c = 0; c < query_size + aggr_size; ++c) {
+        TupleCell cell;
+        while (c < aggr_idxs[aggrfieldcnt]) {
+          Value v;
+          if (query_fields[query_size - queryfieldcnt -1].meta() != nullptr && tuple->find_cell(query_fields[query_size - queryfieldcnt -1], cell) != RC::SUCCESS) {
+            LOG_WARN("cannot get the cell value\n");
+            break;
+          }
+          v.type = cell.attr_type();
+          if (v.type != AttrType::NULLS) {
+            v.data = (void *)malloc(cell.length());
+            memcpy(v.data, cell.data(), cell.length());
+          }
+          vals.push_back(v);
+          ++queryfieldcnt;
+          ++c;
+        }
+        if (aggr_fields[aggr_size - aggrfieldcnt - 1].meta() != nullptr && tuple->find_cell(aggr_fields[aggr_size - aggrfieldcnt - 1], cell) != RC::SUCCESS) {
+          LOG_WARN("cannot get the cell value");
+          break;
+        }
+        Value aggrv;
+        if (aggregation_ops[aggrfieldcnt] == COUNT_OP) {
+          aggrv.type = INTS;
+          aggrv.data = new int;
+          *static_cast<int *>(aggrv.data) = 0;
+        } else if (aggregation_ops[aggrfieldcnt] == SUM_OP || aggregation_ops[aggrfieldcnt] == AVG_OP) {
+          aggrv.type = FLOATS;
+          aggrv.data = nullptr;
+        } else {
+          aggrv.type = aggr_fields[aggr_size - aggrfieldcnt -1].attr_type();
+          aggrv.data = nullptr;
+        }
+        vals.push_back(aggrv);
+        aggrfieldcnt++;
+      }
+      values.push_back(vals);
+    }
+  }
+  if (rc != RC::RECORD_EOF) {
+    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+    project_oper.close();
+  } else {
+    rc = project_oper.close();
+  }
+
+  // 妈妈的直接再建一次 project_oper1再扫一次
+  {
+    PredicateOperator pred_oper(select_stmt->filter_stmt());
+    std::vector<Operator *> scan_opers(select_stmt->tables().size());
+    for (int i = 0; i < scan_opers.size(); ++i) {
+      printf("add scan oper %d\n", i);
+      scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+      
+      if (nullptr == scan_opers[i]) {
+        // TODO memory leak
+        scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
+      }
+      pred_oper.add_child(scan_opers[i]);
+    }
+    ProjectOperator project_oper1;
+    project_oper1.add_child(&pred_oper);
+    bool is_single_table = select_stmt->tables().size() == 1;
+    for (const Field &field : select_stmt->query_fields()) {
+      if (field.meta() == nullptr) {
+        continue;
+      }
+      project_oper1.add_projection(field.table(), field.meta(), is_single_table);
+    }
+  }
+
+  std::vector<std::vector<int>> divs(groups.size(), std::vector<int>(aggr_size, 0));
+  // 开始扫描运算
+  rc = project_oper1.open();
+  while ((rc = project_oper1.next()) == RC::SUCCESS) {
+    Tuple *tuple = project_oper1.current_tuple();
+    if (nullptr == tuple) {
+      rc = RC::INTERNAL;
+      LOG_WARN("failed to get current record. rc = %s", strrc(rc));
+      return rc;
+    }
+    std::vector<TupleCell> group;
+    group.resize(group_size);
+    for (int c = 0; c < group_size; ++c) {
+      TupleCell cell;
+      if (group_fields[group_size - c - 1].meta() != nullptr && tuple->find_cell(group_fields[group_size - c -1], cell) != RC::SUCCESS) {
+        LOG_WARN("cannot get the cell value\n");
+        return RC::INTERNAL;
+      }
+      group[c] = cell;
+    }
+    GroupKey key(group);
+    auto it = std::find(groups.begin(), groups.end(), key);
+    if (it != groups.end()) {
+      int groupid = it - groups.begin();
+      for (int i = 0; i < aggr_size; i++) {
+        TupleCell tuplecell;
+        int idx = aggr_idxs[i];
+        if (aggr_fields[aggr_size - i - 1].meta() == nullptr && tuple->find_cell(aggr_fields[aggr_size - i - 1], tuplecell) != RC::SUCCESS) {
+          LOG_WARN("cannot get the cell value");
+          return RC::INTERNAL;
+        }
+        if (tuplecell.attr_type() == AttrType::NULLS) {
+          continue;
+        }
+        divs[groupid][i] ++;
+        switch (aggregation_ops[i]) {
+          case COUNT_OP: {
+            // if (cell.attr_type() != AttrType::NULLS) {
+              *static_cast<int *>(values[groupid][idx].data) += 1;
+              printf("group id: %d, idx : %d , cnt: %d\n", groupid, idx,*static_cast<int *>(values[groupid][idx].data));
+            // }
+          } break;
+
+          case SUM_OP:
+          case AVG_OP: {
+            // if (values[i].data == nullptr && cell.attr_type() != AttrType::NULLS) {
+            if (values[groupid][idx].data == nullptr) {
+              values[groupid][idx].data = new float(0);
+            }
+            if (tuplecell.attr_type() == AttrType::INTS) {
+              *static_cast<float*>(values[groupid][idx].data) += *reinterpret_cast<const int*>(tuplecell.data());
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              *static_cast<float*>(values[groupid][idx].data) += *reinterpret_cast<const float*>(tuplecell.data());
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              float tmp;
+              string2float(tuplecell.data(), &tmp);
+              *static_cast<float*>(values[groupid][idx].data) += tmp;
+            // } else if (cell.attr_type() != AttrType::NULLS) {
+            } else {
+              LOG_WARN("unsupported attr type");
+              return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+            }
+          } break;
+
+          case MAX_OP: {
+            if (tuplecell.attr_type() == AttrType::INTS || tuplecell.attr_type() == AttrType::DATES) {
+              if (values[groupid][idx].data == nullptr) {
+                // first time
+                values[groupid][idx].data = new int(*(int *)tuplecell.data());
+              } else {
+                if (compare_int((void *)tuplecell.data(), values[groupid][idx].data) > 0) {
+                  *static_cast<int*>(values[groupid][idx].data) = *reinterpret_cast<const int *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              if (values[groupid][idx].data == nullptr) {
+                // first time
+                values[groupid][idx].data = new float(*(float *)tuplecell.data());
+              } else {
+                if (compare_float((void *)tuplecell.data(), values[groupid][idx].data) > 0) {
+                  *static_cast<float*>(values[groupid][idx].data) = *reinterpret_cast<const float *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              if (values[groupid][idx].data == nullptr) {
+                values[groupid][idx].data = strdup(tuplecell.data());
+              } else if (compare_string(values[groupid][idx].data, strlen((const char*)(values[groupid][idx].data)), (void*)tuplecell.data(), strlen((tuplecell.data()))) < 0) {
+                // TODO: memory leak
+                values[groupid][idx].data = strdup(tuplecell.data());
+              }
+            }
+          } break;
+          
+          case MIN_OP: {
+            if (tuplecell.attr_type() == AttrType::INTS || tuplecell.attr_type() == AttrType::DATES) {
+              if (values[groupid][idx].data == nullptr) {
+                // first time
+                values[groupid][idx].data = new int(*(int *)tuplecell.data());
+              } else {
+                if (compare_int(values[groupid][idx].data, (void *)tuplecell.data()) > 0) {
+                  *static_cast<int*>(values[groupid][idx].data) = *reinterpret_cast<const int *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              if (values[groupid][idx].data == nullptr) {
+                // first time
+                values[groupid][idx].data = new float(*(float *)tuplecell.data());
+              } else {
+                if (compare_float(values[groupid][idx].data, (void *)tuplecell.data()) > 0) {
+                  *static_cast<float*>(values[groupid][idx].data) = *reinterpret_cast<const float *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              if (values[groupid][idx].data == nullptr) {
+                values[groupid][idx].data = strdup(tuplecell.data());
+              } else if (compare_string(values[groupid][idx].data, strlen((const char*)(values[groupid][idx].data)), (void*)tuplecell.data(), strlen((tuplecell.data()))) > 0) {
+                values[groupid][idx].data = strdup(tuplecell.data());
+              }
+            }
+
+          } break;
+          default: {
+            LOG_WARN("unsupported aggregation op");
+            return RC::GENERIC_ERROR;
+          }
+        }
+      }
+    }
+  }
+  if (rc != RC::RECORD_EOF) {
+    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+    project_oper1.close();
+  } else {
+    rc = project_oper1.close();
+  }
+  int gid = 0;
+  for (auto vs : values) {
+    for (int i = 0; i < aggr_size; ++i) {
+      int idx = aggr_idxs[i];
+      if (vs[idx].data == nullptr) {
+        vs[idx].type = AttrType::NULLS;
+        continue;
+      }
+      if (aggregation_ops[i] == AVG_OP) {
+        if (vs[idx].type == AttrType::INTS) {
+          *static_cast<float*>(vs[idx].data) /= divs[gid][i];
+        } else if (vs[idx].type == AttrType::FLOATS) {
+          *static_cast<float*>(vs[idx].data) /= divs[gid][i];
+        } else {
+          LOG_WARN("unsupported attr type");
+          return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+        }
+      }
+    }
+  }
+  return rc;
+}
+
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 {
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
@@ -722,7 +1002,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   PredicateOperator pred_oper(select_stmt->filter_stmt());
 
   std::vector<Operator *> scan_opers(select_stmt->tables().size());
-  for (int i = 0; i< scan_opers.size(); ++i) {
+  for (int i = 0; i < scan_opers.size(); ++i) {
     printf("add scan oper %d\n", i);
     scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
     
@@ -745,6 +1025,12 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     }
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
+  // for (const Field &field : select_stmt->aggr_fields()) {
+  //   if (field.meta() == nullptr) {
+  //     continue;
+  //   }
+  //   project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  // }
   rc = project_oper.open();
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open operator");
@@ -757,7 +1043,51 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
   std::stringstream ss;
 
-  if (!select_stmt->aggregation_ops().empty()) {
+  if (select_stmt->group()) {
+    print_aggregation_header(ss, select_stmt);
+    std::vector<std::vector<Value>> values;
+    if (RC::SUCCESS != (rc = group_select_handler(select_stmt, values, project_oper))) {
+      for (int i = 0; i < scan_opers.size(); ++i) {
+        delete scan_opers[i];
+      }
+      return rc;
+    }
+    for (auto vs : values) {
+      bool first_value = true;
+      for (int i = 0; i < vs.size(); ++i) {
+        auto value = vs[i];
+        if (first_value) {
+          first_value = false;
+        } else {
+          ss << " | ";
+        }
+
+        if (value.type == AttrType::NULLS) {
+          ss << "NULL";
+        }
+
+        if (value.type == AttrType::INTS) {
+          ss << *static_cast<int *>(value.data);
+          delete static_cast<int *>(value.data);
+
+        } else if (value.type == AttrType::FLOATS) {
+          ss << double2string(*static_cast<float *>(value.data));
+          delete static_cast<float *>(value.data);
+
+        } else if (value.type == AttrType::CHARS) {
+          ss << (const char *)(value.data);
+          delete (const char *)value.data;
+
+        } else if (value.type == AttrType::DATES) {
+          int value_int = *(int*)value.data;
+          char buf[16] = {0};
+          snprintf(buf,sizeof(buf),"%04d-%02d-%02d",value_int/10000, (value_int%10000)/100,value_int%100); // 注意这里月份和天数，不足两位时需要填充0
+          ss << buf;
+        }
+      }
+      ss << std::endl;
+    } 
+  } else if (!select_stmt->aggregation_ops().empty()) {
 
     // aggregation 
 
@@ -1037,10 +1367,8 @@ RC ExecuteStage::do_show_index(SQLStageEvent *sql_event) {
   }
   std::vector<Index *> indexes = table->all_indexes();
   std::stringstream ss;
-  auto size = indexes.size();
   ss << "TABLE | NON_UNIQUE | KEY_NAME | SEQ_IN_INDEX | COLUMN_NAME" << std::endl;
   for (const auto & index : indexes) {
-    size_t n = index->index_meta().field().size();
     for (int i = 0; i < index->index_meta().field().size(); ++i) {
       ss << table->name() << " | ";
       //// 此处需要添加unique后修改，暂时无脑输入1。non-unique时为1，unique时为0
