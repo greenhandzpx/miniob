@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/stmt/update_stmt.h"
 #include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
 #include "storage/common/db.h"
 
 // *************************************************upselect*********************************************************
@@ -197,20 +198,23 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
 
       const_cast<Value*>(&u_stmt->values_[i])->type = cell.attr_type();
 
-      size_t len;
+      if (cell.attr_type() != NULLS) {
+        size_t len;
+        if (cell.attr_type() == INTS) {
+          len = sizeof(int);
+        } else if (cell.attr_type() == CHARS) {
+          len = strlen((char*)cell.data());
+        } else if (cell.attr_type() == FLOATS) {
+          len = sizeof(float);
+        } else {
+          // todo
+          LOG_WARN("bad type in update stmt");
+          return RC::SUB_BAD_TYPE;
+        }
+        const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
+        memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
 
-      if (cell.attr_type() == INTS) {
-        len = sizeof(int);
-      } else if (cell.attr_type() == CHARS) {
-        len = strlen((char*)cell.data());
-      } else if (cell.attr_type() == FLOATS) {
-        len = sizeof(float);
-      } else {
-        // todo
-        return RC::SUB_BAD_TYPE;
       }
-      const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
-      memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
       
     }
   }

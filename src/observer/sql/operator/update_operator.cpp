@@ -72,9 +72,15 @@ RC UpdateOperator::open()
         }
       }
 
-
-      // modify the field in the record data
-      memcpy(record.data() + field->offset(), value.data, copy_len);
+      if (value.type == AttrType::NULLS) {
+        if (!field->nullable()) {
+          LOG_WARN("shouldn't set a field a NULL value since the field isn't nullable");
+          return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+      } else {
+        // modify the field in the record data
+        memcpy(record.data() + field->offset(), value.data, copy_len);
+      }
 
       // set null
       int null_bit = 1 << table_meta.get_field_place(field->name());
