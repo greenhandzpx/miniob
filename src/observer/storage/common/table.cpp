@@ -1058,28 +1058,43 @@ RC Table::rollback_delete(Trx *trx, const RID &rid)
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
+  int null_map = *((int *)(record + NULLMAP_OFFSET));
+  // if (*null_map > 0) {
+  //   printf("the record to be inserted has NULL value\n");
+  //   has_null = true;
+  // }
   for (Index *index : indexes_) {
 
     if (index->index_meta().unique()) {
+      auto field_metas = index->field_meta();
       // the index is unique
       // then we should check whether this record's related field existed or not
-      auto field_metas = index->field_meta();
       std::vector<const char*> key(field_metas.size());
       std::vector<int> len(field_metas.size());
+      bool has_null = false;
       for (int i = 0; i < field_metas.size(); ++i) {
+        int null_bit = 1 << table_meta_.get_field_place(field_metas[i].name());
+        if (null_map & null_bit) {
+          // the record has NULL value
+          // then no need to check uniqueness
+          has_null = true;
+          break;
+        }
         key[i] = record + field_metas[i].offset();
         len[i] = field_metas[i].len();
       }
-
-      IndexScanner *scanner = index->create_scanner(key, len, true, key, len, true);
-      if (scanner) {
-        // TODO: not sure
-        RID rid;
-        if (scanner->next_entry(&rid) == RC::SUCCESS) {
-          // the record's field values exists
-          return RC::RECORD_DUPLICATE_KEY;
+      if (!has_null) {
+        IndexScanner *scanner = index->create_scanner(key, len, true, key, len, true);
+        if (scanner) {
+          // TODO: not sure
+          RID rid;
+          if (scanner->next_entry(&rid) == RC::SUCCESS) {
+            // the record's field values exists
+            return RC::RECORD_DUPLICATE_KEY;
+          }
         }
       }
+
     }
 
     rc = index->insert_entry(record, &rid);
