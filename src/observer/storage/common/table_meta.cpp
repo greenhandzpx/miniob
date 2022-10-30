@@ -121,7 +121,7 @@ const FieldMeta *TableMeta::trx_field() const
   return &fields_[0];
 }
 
-const FieldMeta *TableMeta::field(int index) const
+const FieldMeta *TableMeta::field(int index) const 
 {
   return &fields_[index];
 }

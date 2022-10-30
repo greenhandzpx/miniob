@@ -57,12 +57,30 @@ void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_
   // 对多表查询来说，展示的alias 需要带表名字
   TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
   if (is_single_table) {
-    spec->set_alias(field_meta->name());
+    if (field_meta->has_alias()) {
+      spec->set_alias(field_meta->get_alias());
+    } else {
+      spec->set_alias(field_meta->name());
+    }
   } else {
     // TODO memory leak
-    std::string *table_name = new std::string(table->name());
-    *table_name += "." + std::string(field_meta->name()); 
-    spec->set_alias(table_name->c_str());
+    std::string *res = new std::string;
+    std::string table_name;
+    if (table->table_meta().has_alias()) {
+      table_name = table->table_meta().get_alias();
+      printf("table has alias : %s\n", table_name.c_str());
+    } else {
+      table_name = table->name();
+    }
+    std::string field_name;
+    if (field_meta->has_alias()) {
+      field_name = field_meta->get_alias();
+    } else {
+      field_name = field_meta->name();
+    }
+    *res += table_name + "." + field_name;
+    printf("column alias %s\n", res->c_str());
+    spec->set_alias(res->c_str());
   }
   tuple_.add_cell_spec(spec);
 }

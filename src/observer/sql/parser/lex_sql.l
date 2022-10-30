@@ -99,6 +99,8 @@ QUOTE            [\'\"]
 
 [Oo][Rr]                                             RETURN_TOKEN(OR);
 
+[Aa][Ss]                                             RETURN_TOKEN(AS);
+
 
 "("                                                  RETURN_TOKEN(LBRACE);
 ")"                                                  RETURN_TOKEN(RBRACE);

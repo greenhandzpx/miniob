@@ -78,6 +78,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
 
     tables.push_back(table);
     table_map.insert(std::pair<std::string, Table*>(table_name, table));
+    const char *table_alias = select_sql.relation_alias[i];
+    if (!common::is_blank(table_alias)) {
+      const_cast<TableMeta&>(table->table_meta()).set_alias(table_alias);
+      table_map.insert(std::pair<std::string, Table*>(table_alias, table));
+    }
   }
 
   
@@ -115,6 +120,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
 
       const char *table_name = relation_attr.relation_name;
       const char *field_name = relation_attr.attribute_name;
+      const char *alias_name = relation_attr.alias_name;
 
       if (0 == strcmp(table_name, "*")) {
         if (0 != strcmp(field_name, "*")) {
@@ -135,13 +141,15 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
         if (0 == strcmp(field_name, "*")) {
           wildcard_fields(table, query_fields);
         } else {
-          const FieldMeta *field_meta = table->table_meta().field(field_name);
+          FieldMeta *field_meta = const_cast<FieldMeta*>(table->table_meta().field(field_name));
           if (nullptr == field_meta) {
             LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
             return RC::SCHEMA_FIELD_MISSING;
           }
-
-        query_fields.push_back(Field(table, field_meta));
+          if (!common::is_blank(alias_name)) {
+            field_meta->set_alias(std::string(alias_name));
+          }
+          query_fields.push_back(Field(table, field_meta));
         }
       }
     } else {
@@ -154,12 +162,16 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
       }
 
       Table *table = tables[0];
-      const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
+      FieldMeta *field_meta = const_cast<FieldMeta*>(table->table_meta().field(relation_attr.attribute_name));
       if (nullptr == field_meta) {
         LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
         return RC::SCHEMA_FIELD_MISSING;
       }
 
+      const char *alias_name = relation_attr.alias_name;
+      if (!common::is_blank(alias_name)) {
+        field_meta->set_alias(std::string(alias_name));
+      }
       query_fields.push_back(Field(table, field_meta));
     }
   }
@@ -257,7 +269,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   for (int i = 0; i < select_sql.aggregation_num; ++i) {
     aggregation_ops[i] = select_sql.aggregation_ops[i];
     // if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP) {
-    //   if (query_fields[n-i-1].attr_type() == AttrType::CHARS || 
+    //   if (query_fields[n-i-1].attr_type() == AttrType::CHARS ||);
     //       query_fields[n-i-1].attr_type() == AttrType::DATES) {
     //     return RC::GENERIC_ERROR;
     //   } 

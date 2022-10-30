@@ -153,6 +153,8 @@ ParserContext *get_context(yyscan_t scanner)
 
 		OR
 
+		AS
+
 %union {
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -510,7 +512,24 @@ select_query:				/*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where order
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4, NULL);
+
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+
+			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
+
+			//临时变量清零
+			CONTEXT->condition_length=0;
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+			CONTEXT->value_length = 0;
+			CONTEXT->tuple_num = 0;
+	}
+	| SELECT select_attr FROM ID AS ID rel_list where order
+		{
+			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4, $6);
 
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
 
@@ -532,14 +551,26 @@ select_attr:
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID attr_list {
+	| ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+    | ID AS ID attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			attr.alias_name = $3;
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
   	| ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+  	| ID DOT ID AS ID attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			attr.alias_name = $5;
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| ID DOT STAR attr_list {
@@ -554,6 +585,7 @@ select_attr:
 			
 	}
     ;
+
 
 aggregate_attr:
 	/* aggregate_op LBRACE STAR RBRACE {
@@ -646,9 +678,25 @@ attr_list:
      	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
       }
+    | COMMA ID AS ID attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			attr.alias_name = $4;
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
+      }
     | COMMA ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+  	  }
+    | COMMA ID DOT ID AS ID attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			attr.alias_name = $6;
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
@@ -667,10 +715,16 @@ attr_list:
 rel_list:
     /* empty */
     | COMMA ID rel_list {	
-				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
+				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2, NULL);
+		  }
+    | COMMA ID AS ID rel_list {	
+				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2, $4);
 		  }
 	| INNER JOIN ID on_list rel_list {
-				selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+				selects_append_relation(&CONTEXT->ssql->sstr.selection, $3, NULL);
+	}
+	| INNER JOIN ID AS ID on_list rel_list {
+				selects_append_relation(&CONTEXT->ssql->sstr.selection, $3, $5);
 	}
     ;
 

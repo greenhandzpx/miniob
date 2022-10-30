@@ -65,6 +65,10 @@ public:
   void to_string(std::string &output) const override;
   void desc(std::ostream &os) const;
 
+  bool has_alias() const { return !alias_name_.empty(); }
+  void set_alias(const std::string alias_name) { alias_name_ = alias_name; }
+  const char *get_alias() const { return alias_name_.c_str(); }
+
 protected:
   static RC init_sys_fields();
 
@@ -72,6 +76,8 @@ protected:
   std::string name_;
   std::vector<FieldMeta> fields_;  // 包含sys_fields
   std::vector<IndexMeta> indexes_;
+
+  std::string alias_name_;
 
   int record_size_ = 0;
 
