@@ -430,10 +430,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
                 find = true;
         }
       }
-      if (!find) {
-        printf("ri\n");
-        return RC::INTERNAL;
-      }
+      // if (!find) {
+      //   return RC::INTERNAL;
+      // }
     }
   }
 
