@@ -48,8 +48,34 @@ CLogRecord::CLogRecord(CLogType flag, int32_t trx_id, const char *table_name /* 
         log_record_.ins.data_len_ = data_len;
         log_record_.ins.hdr_.logrec_len_ = _align8(CLOG_INS_REC_NODATA_SIZE + data_len);
         log_record_.ins.data_ = new char[log_record_.ins.hdr_.logrec_len_ - CLOG_INS_REC_NODATA_SIZE];
+        
+        printf("insert record data: size %d:", data_len);
+        for (int i = 0; i < data_len; ++i) {
+          printf("%x", rec->data()[i]);
+        }
+        printf("\n");
         memcpy(log_record_.ins.data_, rec->data(), data_len);
         log_record_.ins.hdr_.lsn_ = CLogManager::get_next_lsn(log_record_.ins.hdr_.logrec_len_);
+      }
+    } break;
+    case REDO_UPDATE: {
+      if (!rec || !rec->data()) {
+        LOG_ERROR("Record is null");
+      } else {
+        log_record_.upd.hdr_.trx_id_ = trx_id;
+        log_record_.upd.hdr_.type_ = flag;
+        strcpy(log_record_.upd.table_name_, table_name);
+        log_record_.upd.rid_ = rec->rid();
+        log_record_.upd.data_len_ = data_len;
+        log_record_.upd.hdr_.logrec_len_ = _align8(CLOG_INS_REC_NODATA_SIZE + data_len);
+        log_record_.upd.data_ = new char[log_record_.upd.hdr_.logrec_len_ - CLOG_INS_REC_NODATA_SIZE];
+        memcpy(log_record_.upd.data_, rec->data(), data_len);
+        log_record_.upd.hdr_.lsn_ = CLogManager::get_next_lsn(log_record_.upd.hdr_.logrec_len_);
+        printf("update record data: size %d:", data_len);
+        for (int i = 0; i < data_len; ++i) {
+          printf("%x", rec->data()[i]);
+        }
+        printf("\n");
       }
     } break;
     case REDO_DELETE: {
@@ -91,6 +117,19 @@ CLogRecord::CLogRecord(char *data)
       log_record_.ins.data_ = new char[log_record_.ins.hdr_.logrec_len_ - CLOG_INS_REC_NODATA_SIZE];
       memcpy(log_record_.ins.data_, data, log_record_.ins.data_len_);
     } break;
+    case REDO_UPDATE: {
+      log_record_.upd.hdr_ = *hdr;
+      data += sizeof(CLogRecordHeader);
+      strcpy(log_record_.upd.table_name_, data);
+      data += TABLE_NAME_MAX_LEN;
+      log_record_.upd.rid_ = *(RID *)data;
+      data += sizeof(RID);
+      log_record_.upd.data_len_ = *(int *)data;
+      data += sizeof(int);
+      log_record_.upd.data_ = new char[log_record_.upd.hdr_.logrec_len_ - CLOG_INS_REC_NODATA_SIZE];
+      memcpy(log_record_.upd.data_, data, log_record_.upd.data_len_);
+
+    } break;
     case REDO_DELETE: {
       log_record_.del.hdr_ = *hdr;
       data += sizeof(CLogRecordHeader);
@@ -109,6 +148,9 @@ CLogRecord::~CLogRecord()
   if (REDO_INSERT == flag_) {
     delete[] log_record_.ins.data_;
   }
+  if (REDO_UPDATE == flag_) {
+    delete[] log_record_.upd.data_;
+  }
 }
 
 RC CLogRecord::copy_record(void *dest, int start_off, int copy_len)
@@ -116,6 +158,17 @@ RC CLogRecord::copy_record(void *dest, int start_off, int copy_len)
   CLogRecords *log_rec = &log_record_;
   if (start_off + copy_len > get_logrec_len()) {
     return RC::GENERIC_ERROR;
+  } else if (flag_ == REDO_UPDATE) {
+    if (start_off > CLOG_INS_REC_NODATA_SIZE) {
+      memcpy(dest, log_rec->upd.data_ + start_off - CLOG_INS_REC_NODATA_SIZE, copy_len);
+    } else if (start_off + copy_len <= CLOG_INS_REC_NODATA_SIZE) {
+      memcpy(dest, (char *)log_rec + start_off, copy_len);
+    } else {
+      memcpy(dest, (char *)log_rec + start_off, CLOG_INS_REC_NODATA_SIZE - start_off);
+      memcpy((char *)dest + CLOG_INS_REC_NODATA_SIZE - start_off,
+          log_rec->upd.data_,
+          copy_len - (CLOG_INS_REC_NODATA_SIZE - start_off));
+    }
   } else if (flag_ != REDO_INSERT) {
     memcpy(dest, (char *)log_rec + start_off, copy_len);
   } else {

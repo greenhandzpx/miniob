@@ -1139,10 +1139,11 @@ RC ExecuteStage::do_insert(SQLStageEvent *sql_event)
       session_event->set_response("FAILURE\n");
       return rc;
     } 
-    printf("is not trx multi\n");
+    printf("insert is not in trx multi mode\n");
     trx->next_current_id();
     session_event->set_response("SUCCESS\n");
   } else {
+    printf("insert is in trx multi op mode\n");
     session_event->set_response("SUCCESS\n");
   }
 
@@ -1178,8 +1179,11 @@ RC ExecuteStage::do_update(SQLStageEvent *sql_event)
   if (rc != RC::SUCCESS) {
     session_event->set_response("FAILURE\n");
   } else {
-    session_event->set_response("SUCCESS\n");
+
     if (!session->is_trx_multi_operation_mode()) {
+
+      printf("update is not in trx multi op mode\n");
+
       CLogRecord *clog_record = nullptr;
       rc = clog_manager->clog_gen_record(CLogType::REDO_MTR_COMMIT, trx->get_current_id(), clog_record);
       if (rc != RC::SUCCESS || clog_record == nullptr) {
@@ -1195,6 +1199,10 @@ RC ExecuteStage::do_update(SQLStageEvent *sql_event)
 
       trx->next_current_id();
       session_event->set_response("SUCCESS\n");
+    } else {
+      printf("update is in trx multi op mode\n");
+      session_event->set_response("SUCCESS\n");
+
     }
   }
 

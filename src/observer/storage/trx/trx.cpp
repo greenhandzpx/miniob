@@ -98,17 +98,43 @@ RC Trx::delete_record(Table *table, Record *record)
   RC rc = RC::SUCCESS;
   start_if_not_started();
   Operation *old_oper = find_operation(table, record->rid());
+  /**
+    zpx:
+    the op hash table's key's equality is defined by rid, 
+    and due to the uniqueness of the key, one rid can only have one 
+    op type in the hash table(which can be covered)  
+  */
   if (old_oper != nullptr) {
-    if (old_oper->type() == Operation::Type::INSERT) {
+    if (old_oper->type() == Operation::Type::INSERT ||
+        old_oper->type() == Operation::Type::UPDATE) {
       delete_operation(table, record->rid());
       return RC::SUCCESS;
     } else {
+      // Type::DELETE:
+      // the record can't be deleted twice
       return RC::GENERIC_ERROR;
     }
   }
   set_record_trx_id(table, *record, trx_id_, true);
   insert_operation(table, Operation::Type::DELETE, record->rid());
   return rc;
+}
+
+RC Trx::update_record(Table *table, Record *record)
+{
+  RC rc = RC::SUCCESS;
+  // check whether this rid has any operations before 
+  Operation *old_oper = find_operation(table, record->rid());
+  if (old_oper != nullptr) {
+    if (old_oper->type() == Operation::Type::DELETE) {
+      // the record has been deleted
+      return RC::GENERIC_ERROR;
+    } else {
+      return RC::GENERIC_ERROR;
+    }
+  }
+
+  insert_operation(table, Operation::Type::UPDATE, record->rid());
 }
 
 void Trx::set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool deleted) const

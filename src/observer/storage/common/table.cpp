@@ -360,6 +360,13 @@ RC Table::recover_insert_record(Record *record)
   return rc;
 }
 
+RC Table::recover_update_record(Record *record)
+{
+  RC rc = RC::SUCCESS;
+  rc = record_handler_->update_record(record);
+  return rc;
+}
+
 RC Table::insert_record(Trx *trx, int value_num, const Value *values)
 {
   if (value_num <= 0 || nullptr == values) {
@@ -898,36 +905,42 @@ RC Table::update_record(Trx *trx, Record *record)
 
   // TODO: support transaction
 
-  // if (trx != nullptr) {
-  //   trx->init_trx_info(this, *record);
+  if (trx != nullptr) {
+    // trx->init_trx_info(this, *record);
 
-  //   printf("update record:trx not null\n");
-  //   rc = trx->insert_record(this, record);
+    // printf("update record:trx not null\n");
+    // rc = trx->update_record(this, record);
 
-  //   // TODO: handle transaction here
-  //   if (rc != RC::SUCCESS) {
-  //     LOG_ERROR("Failed to log operation(insertion) to trx");
+    // if (rc != RC::SUCCESS) {
+    //   LOG_ERROR("Failed to log operation(update) to trx");
 
-  //     RC rc2 = record_handler_->delete_record(&record->rid());
-  //     if (rc2 != RC::SUCCESS) {
-  //       LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
-  //           name(),
-  //           rc2,
-  //           strrc(rc2));
-  //     }
-  //     return rc;
-  //   }
-  //   CLogRecord *clog_record = nullptr;
-  //   rc = clog_manager_->clog_gen_record(CLogType::REDO_DELETE, trx->get_current_id(), clog_record, name(), 0, record);
-  //   if (rc != RC::SUCCESS) {
-  //     LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
-  //     return rc;
-  //   }
-  //   rc = clog_manager_->clog_append_record(clog_record);
-  //   if (rc != RC::SUCCESS) {
-  //     return rc;
-  //   }
-  // }
+    //   // TODO: handle rollback here
+
+    //   RC rc2 = record_handler_->delete_record(&record->rid());
+    //   if (rc2 != RC::SUCCESS) {
+    //     LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+    //         name(),
+    //         rc2,
+    //         strrc(rc2));
+    //   }
+    //   return rc;
+    // }
+    CLogRecord *clog_record = nullptr;
+    rc = clog_manager_->clog_gen_record(CLogType::REDO_UPDATE, trx->get_current_id(), clog_record, name(), table_meta_.record_size(), record);
+    printf("record data: size %d:", table_meta_.record_size());
+    for (int i = 0; i < table_meta_.record_size(); ++i) {
+      printf("%x", record->data()[i]);
+    }
+    printf("\n");
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create a clog record. rc=%d:%s", rc, strrc(rc));
+      return rc;
+    }
+    rc = clog_manager_->clog_append_record(clog_record);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
 
   // }
   return rc;
@@ -1017,7 +1030,7 @@ RC Table::recover_delete_record(Record *record)
 {
   RC rc = RC::SUCCESS;
   rc = record_handler_->delete_record(&record->rid());
-  
+
   return rc;
 }
 

@@ -220,7 +220,7 @@ RC RecordPageHandler::recover_insert_record(const char *data, RID *rid)
   memcpy(record_data, data, page_header_->record_real_size);
 
   frame_->mark_dirty();
-
+  printf("insert_record: page_num %d, slot num %d\n", get_page_num(), rid->slot_num);
   return RC::SUCCESS;
 }
 
