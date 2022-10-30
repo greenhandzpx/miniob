@@ -254,6 +254,9 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
       if (i != 0) {
         os << " | ";
       }
+      if (select_stmt->tables().size() != 1) {
+        os << query_field[querycnt].table_name() << ".";
+      }
       os << query_field[querycnt].field_name();
       querycnt++;
       ++i;
@@ -282,6 +285,9 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
     }
     size_t n = select_stmt->aggr_fields().size();
     printf("n : %zu\n", n);
+    if (select_stmt->tables().size() != 1) {
+        os << select_stmt->aggr_fields()[n-aggropscnt-1].table_name() << ".";
+    }
     if (select_stmt->aggr_fields()[n-aggropscnt-1].meta() == nullptr) {
       os << "*)";
     } else {
@@ -736,6 +742,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
   std::vector<GroupKey> groups;
   // 分组,同时初始化values数组
   while ((rc = project_oper.next()) == RC::SUCCESS) {
+    printf("hahaha\n");
     Tuple *tuple = project_oper.current_tuple();
     if (nullptr == tuple) {
       rc = RC::INTERNAL;
@@ -761,7 +768,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
         TupleCell cell;
         while (c < aggr_idxs[aggrfieldcnt]) {
           Value v;
-          if (query_fields[query_size - queryfieldcnt -1].meta() != nullptr && tuple->find_cell(query_fields[query_size - queryfieldcnt -1], cell) != RC::SUCCESS) {
+          if (query_fields[queryfieldcnt].meta() != nullptr && tuple->find_cell(query_fields[queryfieldcnt], cell) != RC::SUCCESS) {
             LOG_WARN("cannot get the cell value\n");
             break;
           }
@@ -804,29 +811,35 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
   }
 
   // 妈妈的直接再建一次 project_oper1再扫一次
-  {
-    PredicateOperator pred_oper(select_stmt->filter_stmt());
-    std::vector<Operator *> scan_opers(select_stmt->tables().size());
-    for (int i = 0; i < scan_opers.size(); ++i) {
-      printf("add scan oper %d\n", i);
-      scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-      
-      if (nullptr == scan_opers[i]) {
-        // TODO memory leak
-        scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
-      }
-      pred_oper.add_child(scan_opers[i]);
+
+  PredicateOperator pred_oper(select_stmt->filter_stmt());
+  std::vector<Operator *> scan_opers(select_stmt->tables().size());
+  for (int i = 0; i < scan_opers.size(); ++i) {
+    printf("add scan oper %d\n", i);
+    scan_opers[i] = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+    
+    if (nullptr == scan_opers[i]) {
+      // TODO memory leak
+      scan_opers[i] = new TableScanOperator(select_stmt->tables()[i]);
     }
-    ProjectOperator project_oper1;
-    project_oper1.add_child(&pred_oper);
-    bool is_single_table = select_stmt->tables().size() == 1;
-    for (const Field &field : select_stmt->query_fields()) {
-      if (field.meta() == nullptr) {
-        continue;
-      }
-      project_oper1.add_projection(field.table(), field.meta(), is_single_table);
-    }
+    pred_oper.add_child(scan_opers[i]);
   }
+  ProjectOperator project_oper1;
+  project_oper1.add_child(&pred_oper);
+  bool is_single_table = select_stmt->tables().size() == 1;
+  for (const Field &field : select_stmt->query_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper1.add_projection(field.table(), field.meta(), is_single_table);
+  }
+  for (const Field &field : select_stmt->aggr_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  }
+
 
   std::vector<std::vector<int>> divs(groups.size(), std::vector<int>(aggr_size, 0));
   // 开始扫描运算
@@ -855,7 +868,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
       for (int i = 0; i < aggr_size; i++) {
         TupleCell tuplecell;
         int idx = aggr_idxs[i];
-        if (aggr_fields[aggr_size - i - 1].meta() == nullptr && tuple->find_cell(aggr_fields[aggr_size - i - 1], tuplecell) != RC::SUCCESS) {
+        if (aggr_fields[aggr_size - i - 1].meta() != nullptr && tuple->find_cell(aggr_fields[aggr_size - i - 1], tuplecell) != RC::SUCCESS) {
           LOG_WARN("cannot get the cell value");
           return RC::INTERNAL;
         }
@@ -981,6 +994,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
           return RC::SCHEMA_FIELD_NAME_ILLEGAL;
         }
       }
+      gid++;
     }
   }
   return rc;
@@ -1025,12 +1039,12 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     }
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
-  // for (const Field &field : select_stmt->aggr_fields()) {
-  //   if (field.meta() == nullptr) {
-  //     continue;
-  //   }
-  //   project_oper.add_projection(field.table(), field.meta(), is_single_table);
-  // }
+  for (const Field &field : select_stmt->aggr_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  }
   rc = project_oper.open();
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open operator");
