@@ -744,7 +744,6 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
   std::vector<GroupKey> groups;
   // 分组,同时初始化values数组
   while ((rc = project_oper.next()) == RC::SUCCESS) {
-    printf("hahaha\n");
     Tuple *tuple = project_oper.current_tuple();
     if (nullptr == tuple) {
       rc = RC::INTERNAL;
@@ -882,7 +881,6 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
           case COUNT_OP: {
             // if (cell.attr_type() != AttrType::NULLS) {
               *static_cast<int *>(values[groupid][idx].data) += 1;
-              printf("group id: %d, idx : %d , cnt: %d\n", groupid, idx,*static_cast<int *>(values[groupid][idx].data));
             // }
           } break;
 
@@ -1023,42 +1021,29 @@ bool having_cmp(Value v1, Value v2, CompOp cmp) {
   if (v1.type == NULLS || v2.type == NULLS) {
     return false;
   }
+  float vl1, vl2;
+  if (v1.type == INTS) {
+    vl1 = static_cast<float>(*static_cast<int *>(v1.data));
+  } else if (v1.type == FLOATS) {
+    vl1 = *static_cast<float *>(v1.data);
+  }
+  if (v2.type == INTS) {
+    vl2 = static_cast<float>(*static_cast<int *>(v2.data));
+  } else if (v2.type == FLOATS) {
+    vl2 = *static_cast<float *>(v2.data);
+  }
   if (cmp == CompOp::GREAT_THAN) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) > *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) > *static_cast<float *>(v2.data);
-    }
+    return vl1 > vl2;
   } else if (cmp == CompOp::GREAT_EQUAL) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) >= *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) >= *static_cast<float *>(v2.data);
-    }
+    return vl1 >= vl2;
   } else if (cmp == CompOp::EQUAL_TO) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) == *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) == *static_cast<float *>(v2.data);
-    }
+    return vl1 == vl2;
   } else if (cmp == CompOp::LESS_EQUAL) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) <= *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) <= *static_cast<float *>(v2.data);
-    }
+    return vl1 <= vl2;
   } else if (cmp == CompOp::LESS_THAN) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) < *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) < *static_cast<float *>(v2.data);
-    }
+    return vl1 < vl2;
   } else if (cmp == CompOp::NOT_EQUAL) {
-    if (v1.type == INTS) {
-      return *static_cast<int *>(v1.data) != *static_cast<int *>(v2.data);
-    } else if (v1.type == FLOATS) {
-      return *static_cast<float *>(v1.data) != *static_cast<float *>(v2.data);
-    }
+    return vl1 != vl2;
   }
 }
 
