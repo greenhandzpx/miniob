@@ -905,6 +905,7 @@ RC Table::update_record(Trx *trx, Record *record)
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to update indexes of record (rid=%d.%d). rc=%d:%s",
                 record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
+    return rc;
   } else {
     // update the record
     rc = record_handler_->update_record(record);
