@@ -440,7 +440,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     for (int i = select_sql.having_condition_num - 1; i >= 0; --i) {
       const RelAttr &relation_attr = select_sql.having_conditions[i].attr;
       if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
-          if (select_sql.aggregation_ops[i] != COUNT_OP) {
+          if (select_sql.having_conditions[i].aggr != COUNT_OP) {
             return RC::GENERIC_ERROR;
           }
         having_fields.push_back(Field());
