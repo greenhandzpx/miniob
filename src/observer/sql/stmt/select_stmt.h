@@ -43,8 +43,10 @@ public:
   const std::vector<Field> &query_fields() const { return query_fields_; }
   const std::vector<Field> &aggr_fields() const { return aggr_fields_; }
   const std::vector<Field> &group_fields() const { return group_fields_; }
+  const std::vector<Field> &having_fields() const { return having_fields_; }
   FilterStmt *filter_stmt() const { return filter_stmt_; }
   const std::vector<AggregationOp> &aggregation_ops() const { return aggregation_ops_; }
+  const std::vector<AggregationOp> &having_ops() const { return having_ops_; }
   const std::vector<std::pair<Field, bool>> &order_fields() const { return order_fields_; }
   const std::vector<size_t> &arggrops_idx_in_fields() const { return aggrops_idx_in_fields_; }
   const bool order() const { return order_; }
@@ -62,6 +64,8 @@ private:
   std::vector<std::pair<Field, bool>> order_fields_;
   std::vector<Field> group_fields_;
   std::vector<having_filter> having_filters_;
+  std::vector<Field> having_fields_;
+  std::vector<AggregationOp> having_ops_;
   bool order_;
   bool group_;
   bool having_;

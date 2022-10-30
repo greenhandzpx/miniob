@@ -411,8 +411,13 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     aggrops_idx_in_fields[i] = sum - select_sql.aggrops_idx_in_fields[n - i - 1] - 1;
   }
 
+  std::vector<AggregationOp> having_ops;
+  for (int i = 0; i < select_sql.having_condition_num; i++) {
+    having_ops.push_back(select_sql.having_conditions[i].aggr);
+  }
   bool having = select_sql.is_having == 1 ? true : false;
   std::vector<Having_Filter> having_filters;
+  std::vector<Field> having_fields;
   if (having) {
     for (int i = 0; i < select_sql.having_condition_num; i++) {
       Having_Condition condition = select_sql.having_conditions[i];
@@ -433,6 +438,61 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
       // if (!find) {
       //   return RC::INTERNAL;
       // }
+    for (int i = select_sql.having_condition_num - 1; i >= 0; --i) {
+      const RelAttr &relation_attr = select_sql.having_conditions[i].attr;
+      if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+          if (select_sql.aggregation_ops[i] != COUNT_OP) {
+            return RC::GENERIC_ERROR;
+          }
+        having_fields.push_back(Field());
+      } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
+        const char *table_name = relation_attr.relation_name;
+        const char *field_name = relation_attr.attribute_name;
+        if (0 == strcmp(table_name, "*")) {
+          printf("aggr on *.id / *.*\n");
+          return RC::SCHEMA_FIELD_MISSING;
+        } else {
+          auto iter = table_map.find(table_name);
+          if (iter == table_map.end()) {
+            LOG_WARN("no such table in from list: %s", table_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+
+          Table *table = iter->second;
+          if (0 == strcmp(field_name, "*")) {
+            // wildcard_fields(table, query_fields);
+            if (select_sql.aggregation_ops[i] == COUNT_OP) {
+              having_fields.push_back(Field(table, nullptr));
+            }
+          } else {
+            const FieldMeta *field_meta = table->table_meta().field(field_name);
+            if (nullptr == field_meta) {
+              LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
+              return RC::SCHEMA_FIELD_MISSING;
+            }
+
+            having_fields.push_back(Field(table, field_meta));
+          }
+        }
+      } else {
+
+        // id
+
+        if (tables.size() != 1) {
+          LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        Table *table = tables[0];
+        const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
+        if (nullptr == field_meta) {
+          LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        having_fields.push_back(Field(table, field_meta));
+      }
+    }
     }
   }
 
@@ -445,6 +505,8 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   select_stmt->aggrops_idx_in_fields_ = aggrops_idx_in_fields;
   select_stmt->order_ = order;
   select_stmt->aggr_fields_.swap(aggr_fields);
+  select_stmt->having_fields_.swap(having_fields);
+  select_stmt->having_ops_.swap(having_ops);
   if (order) {
     select_stmt->order_fields_.swap(order_fields);
   }

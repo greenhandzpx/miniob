@@ -741,7 +741,12 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
   auto query_size = query_fields.size();
   auto aggr_size = aggr_fields.size();
   auto group_size = group_fields.size();
+  auto having_fields = select_stmt->having_fields();
+  auto having_size = having_fields.size();
+  auto having_filters = select_stmt->having_filters();
+  auto having_ops = select_stmt->having_ops();
   std::vector<GroupKey> groups;
+  std::vector<std::vector<Value>> having_values;
   // 分组,同时初始化values数组
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     Tuple *tuple = project_oper.current_tuple();
@@ -802,6 +807,32 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
         aggrfieldcnt++;
       }
       values.push_back(vals);
+
+      // having 操作
+      std::vector<Value> having_vals;
+      for (int i = 0; i < having_size; ++i) {
+        TupleCell cell;
+        if (having_fields[having_size-i-1].meta() != nullptr && tuple->find_cell(having_fields[having_size-i-1], cell) != RC::SUCCESS) {
+          LOG_WARN("cannot get the cell value");
+          break;
+        }
+        Value having_v;
+        if (having_ops[i] == COUNT_OP) {
+          having_v.type = INTS;
+          having_v.data = new int;
+          *static_cast<int *>(having_v.data) = 0;
+        } else if (having_ops[i] == SUM_OP || having_ops[i] == AVG_OP) {
+          having_v.type = FLOATS;
+          having_v.data = nullptr;
+        } else {
+          having_v.type = having_fields[having_size-i-1].attr_type();
+          having_v.data = nullptr;
+        }
+        having_vals.push_back(having_v);
+      }
+      having_values.push_back(having_vals);
+
+
     }
   }
   if (rc != RC::RECORD_EOF) {
@@ -841,7 +872,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
 
-
+  std::vector<std::vector<size_t>> having_divs(having_values.size(), std::vector<size_t>(having_ops.size()));
   std::vector<std::vector<int>> divs(groups.size(), std::vector<int>(aggr_size, 0));
   // 开始扫描运算
   rc = project_oper1.open();
@@ -852,6 +883,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
       LOG_WARN("failed to get current record. rc = %s", strrc(rc));
       return rc;
     }
+
     std::vector<TupleCell> group;
     group.resize(group_size);
     for (int c = 0; c < group_size; ++c) {
@@ -863,6 +895,7 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
       group[c] = cell;
     }
     GroupKey key(group);
+    
     auto it = std::find(groups.begin(), groups.end(), key);
     if (it != groups.end()) {
       int groupid = it - groups.begin();
@@ -968,6 +1001,107 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
           }
         }
       }
+      for (int i = 0; i < having_size; i++) {
+        TupleCell tuplecell;
+        if (having_fields[having_size - i - 1].meta() != nullptr && tuple->find_cell(having_fields[having_size - i - 1], tuplecell) != RC::SUCCESS) {
+          LOG_WARN("cannot get the cell value");
+          return RC::INTERNAL;
+        }
+        if (tuplecell.attr_type() == AttrType::NULLS) {
+          continue;
+        }
+        having_divs[groupid][i]++;
+        switch (having_ops[i]) {
+          case COUNT_OP: {
+            // if (cell.attr_type() != AttrType::NULLS) {
+              *static_cast<int *>(having_values[groupid][i].data) += 1;
+            // }
+          } break;
+
+          case SUM_OP:
+          case AVG_OP: {
+            // if (values[i].data == nullptr && cell.attr_type() != AttrType::NULLS) {
+            if (having_values[groupid][i].data == nullptr) {
+              having_values[groupid][i].data = new float(0);
+            }
+            if (tuplecell.attr_type() == AttrType::INTS) {
+              *static_cast<float*>(having_values[groupid][i].data) += *reinterpret_cast<const int*>(tuplecell.data());
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              *static_cast<float*>(having_values[groupid][i].data) += *reinterpret_cast<const float*>(tuplecell.data());
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              float tmp;
+              string2float(tuplecell.data(), &tmp);
+              *static_cast<float*>(having_values[groupid][i].data) += tmp;
+            // } else if (cell.attr_type() != AttrType::NULLS) {
+            } else {
+              LOG_WARN("unsupported attr type");
+              return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+            }
+          } break;
+
+          case MAX_OP: {
+            if (tuplecell.attr_type() == AttrType::INTS || tuplecell.attr_type() == AttrType::DATES) {
+              if (having_values[groupid][i].data == nullptr) {
+                // first time
+                having_values[groupid][i].data = new int(*(int *)tuplecell.data());
+              } else {
+                if (compare_int((void *)tuplecell.data(), having_values[groupid][i].data) > 0) {
+                  *static_cast<int*>(having_values[groupid][i].data) = *reinterpret_cast<const int *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              if (having_values[groupid][i].data == nullptr) {
+                // first time
+                having_values[groupid][i].data = new float(*(float *)tuplecell.data());
+              } else {
+                if (compare_float((void *)tuplecell.data(), having_values[groupid][i].data) > 0) {
+                  *static_cast<float*>(having_values[groupid][i].data) = *reinterpret_cast<const float *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              if (having_values[groupid][i].data == nullptr) {
+                having_values[groupid][i].data = strdup(tuplecell.data());
+              } else if (compare_string(having_values[groupid][i].data, strlen((const char*)(having_values[groupid][i].data)), (void*)tuplecell.data(), strlen((tuplecell.data()))) < 0) {
+                // TODO: memory leak
+                having_values[groupid][i].data = strdup(tuplecell.data());
+              }
+            }
+          } break;
+          
+          case MIN_OP: {
+            if (tuplecell.attr_type() == AttrType::INTS || tuplecell.attr_type() == AttrType::DATES) {
+              if (having_values[groupid][i].data == nullptr) {
+                // first time
+                having_values[groupid][i].data = new int(*(int *)tuplecell.data());
+              } else {
+                if (compare_int(having_values[groupid][i].data, (void *)tuplecell.data()) > 0) {
+                  *static_cast<int*>(having_values[groupid][i].data) = *reinterpret_cast<const int *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::FLOATS) {
+              if (having_values[groupid][i].data == nullptr) {
+                // first time
+                having_values[groupid][i].data = new float(*(float *)tuplecell.data());
+              } else {
+                if (compare_float(having_values[groupid][i].data, (void *)tuplecell.data()) > 0) {
+                  *static_cast<float*>(having_values[groupid][i].data) = *reinterpret_cast<const float *>(tuplecell.data());
+                }
+              }
+            } else if (tuplecell.attr_type() == AttrType::CHARS) {
+              if (having_values[groupid][i].data == nullptr) {
+                having_values[groupid][i].data = strdup(tuplecell.data());
+              } else if (compare_string(having_values[groupid][i].data, strlen((const char*)(having_values[groupid][i].data)), (void*)tuplecell.data(), strlen((tuplecell.data()))) > 0) {
+                having_values[groupid][i].data = strdup(tuplecell.data());
+              }
+            }
+
+          } break;
+          default: {
+            LOG_WARN("unsupported aggregation op");
+            return RC::GENERIC_ERROR;
+          }
+        }
+      }
     }
   }
   if (rc != RC::RECORD_EOF) {
@@ -997,22 +1131,53 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
     }
     gid++;
   }
+  int gid1 = 0;
+  for (auto vs : having_values) {
+    for (int i = 0; i < having_size; ++i) {
+      if (vs[i].data == nullptr) {
+        vs[i].type = AttrType::NULLS;
+        continue;
+      }
+      if (having_ops[i] == AVG_OP) {
+        if (vs[i].type == AttrType::INTS) {
+          *static_cast<float*>(vs[i].data) /= divs[gid1][i];
+        } else if (vs[i].type == AttrType::FLOATS) {
+          *static_cast<float*>(vs[i].data) /= divs[gid1][i];
+        } else {
+          LOG_WARN("unsupported attr type");
+          return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+        }
+      }
+    }
+    gid1++;
+  }
 
   // having
+  // if (select_stmt->having()) {
+  //   std::vector<std::vector<Value>> ass;
+  //   for (auto filter : having_filters) {
+  //     auto idx = filter.value_idx;
+  //     for (auto vs : values) {
+  //       if (having_cmp(vs[idx], filter.right_value, filter.cmpop)) {
+  //         ass.push_back(vs);
+  //       }
+  //     }
+  //   }
+  //   values.swap(ass);
+  // }
   if (select_stmt->having()) {
     std::vector<std::vector<Value>> ass;
-    auto having_filters = select_stmt->having_filters();
-    for (auto filter : having_filters) {
-      auto idx = filter.value_idx;
-      for (auto vs : values) {
-        if (having_cmp(vs[idx], filter.right_value, filter.cmpop)) {
-          ass.push_back(vs);
+    for (int i = 0; i < having_size; ++i) {
+      auto filter = having_filters[i];
+      for (int j = 0; j < having_values.size(); ++j) {
+        auto vs = having_values[j];
+        if (having_cmp(vs[i], filter.right_value, filter.cmpop)) {
+          ass.push_back(values[j]);
         }
       }
     }
     values.swap(ass);
   }
-  
 
   return rc;
 }
