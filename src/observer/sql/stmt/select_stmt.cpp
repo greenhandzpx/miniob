@@ -146,7 +146,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
             LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
             return RC::SCHEMA_FIELD_MISSING;
           }
-          if (!common::is_blank(alias_name)) {
+          if (alias_name != nullptr) {
             field_meta->set_alias(std::string(alias_name));
           }
           query_fields.push_back(Field(table, field_meta));
@@ -169,7 +169,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
       }
 
       const char *alias_name = relation_attr.alias_name;
-      if (!common::is_blank(alias_name)) {
+      if (alias_name != nullptr) {
         field_meta->set_alias(std::string(alias_name));
       }
       query_fields.push_back(Field(table, field_meta));
