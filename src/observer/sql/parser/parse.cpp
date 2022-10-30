@@ -153,6 +153,17 @@ void condition_destroy(Condition *condition)
   }
 }
 
+void having_condition_init(Having_Condition *condition, AggregationOp aggr, CompOp cmpop, Value *value, RelAttr *attr) {
+  condition->aggr = aggr;
+  condition->cmpOp = cmpop;
+  condition->value = *value;
+  condition->attr = *attr;
+}
+
+void having_condition_destroy(Having_Condition *condition) {
+  free(condition);
+}
+
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_nullable)
 {
   attr_info->name = strdup(name);
@@ -174,11 +185,12 @@ void attr_info_destroy(AttrInfo *attr_info)
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
-  printf("selects->attr_num %d\n", selects->attr_num);
   selects->attributes[selects->attr_num++] = *rel_attr;
+  printf("attr_num = %d\n", selects->attr_num);
 }
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
 {
+  selects->aggrops_idx_in_fields[selects->aggregation_num] = selects->aggregation_num + selects->attr_num;
   selects->aggregation_ops[selects->aggregation_num++] = aggregation_op;
 }
 void selects_append_relation(Selects *selects, const char *relation_name)
@@ -203,13 +215,34 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
   selects->condition_num = condition_num;
 }
 
+void selects_append_aggrattr(Selects *selects, RelAttr *rel_attr) {
+  selects->aggregation_attrs[selects->aggregation_attr_num++] = *rel_attr;
+}
+
 void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc) {
   selects->order_attrs[selects->order_attr_num] = *rel_attr;
   selects->is_asc[selects->order_attr_num++] = is_asc;
 }
 
+void selects_append_groupattr(Selects *selects, RelAttr *rel_attr) {
+  selects->group_attrs[selects->group_attr_num++] = *rel_attr;
+}
+
+void selects_append_havingcondition(Selects *selects, Having_Condition *condition) {
+  selects->having_conditions[selects->having_condition_num++] = *condition;
+}
+
 void selects_set_order(Selects *selects, int order) {
   selects->is_order = order;
+}
+
+void selects_set_group(Selects *selects, int group) {
+  printf("select set group %d\n", group);
+  selects->is_group = group;
+}
+
+void selects_set_having(Selects *selects, int having) {
+  selects->is_having = having;
 }
 
 void selects_destroy(Selects *selects)

@@ -82,6 +82,8 @@ QUOTE            [\'\"]
 [Oo][Rr][Dd][Ee][Rr]                  RETURN_TOKEN(ORDER); // order
 [Bb][Yy]                              RETURN_TOKEN(BY);   // by
 [Aa][Ss][Cc]                          RETURN_TOKEN(ASC);
+[Gg][Rr][Oo][Uu][Pp]                  RETURN_TOKEN(GROUP);  // 显然
+[Hh][Aa][Vv][Ii][Nn][Gg]              RETURN_TOKEN(HAVING); // 随便秒秒
 
 [Cc][Oo][Uu][Nn][Tt]                                 RETURN_TOKEN(COUNT);
 [Aa][Vv][Gg]                                         RETURN_TOKEN(AVG);

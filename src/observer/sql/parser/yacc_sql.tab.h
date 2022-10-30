@@ -114,6 +114,7 @@ extern int yydebug;
     ORDER = 315,                   /* ORDER  */
     BY = 316,                      /* BY  */
     ASC = 317,                     /* ASC  */
+<<<<<<< HEAD
     OR = 318,                      /* OR  */
     NUMBER = 319,                  /* NUMBER  */
     FLOAT = 320,                   /* FLOAT  */
@@ -124,6 +125,19 @@ extern int yydebug;
     STRING_V = 325,                /* STRING_V  */
     DATE_STR = 326,                /* DATE_STR  */
     NULLVALUE = 327                /* NULLVALUE  */
+=======
+    GROUP = 318,                   /* GROUP  */
+    HAVING = 319,                  /* HAVING  */
+    NUMBER = 320,                  /* NUMBER  */
+    FLOAT = 321,                   /* FLOAT  */
+    ID = 322,                      /* ID  */
+    PATH = 323,                    /* PATH  */
+    SSS = 324,                     /* SSS  */
+    STAR = 325,                    /* STAR  */
+    STRING_V = 326,                /* STRING_V  */
+    DATE_STR = 327,                /* DATE_STR  */
+    NULLVALUE = 328                /* NULLVALUE  */
+>>>>>>> group_by
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -132,7 +146,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
+<<<<<<< HEAD
 #line 156 "yacc_sql.y"
+=======
+#line 149 "yacc_sql.y"
+>>>>>>> group_by
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -142,7 +160,11 @@ union YYSTYPE
   float floats;
 	char *position;
 
+<<<<<<< HEAD
 #line 146 "yacc_sql.tab.h"
+=======
+#line 147 "yacc_sql.tab.h"
+>>>>>>> group_by
 
 };
 typedef union YYSTYPE YYSTYPE;
