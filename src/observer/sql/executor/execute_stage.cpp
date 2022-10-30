@@ -996,8 +996,8 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
           return RC::SCHEMA_FIELD_NAME_ILLEGAL;
         }
       }
-      gid++;
     }
+    gid++;
   }
   return rc;
 }

@@ -1,5 +1,5 @@
 
-#line 2 "lex.yy.c"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -350,13 +350,8 @@ static void yynoreturn yy_fatal_error ( const char* msg , yyscan_t yyscanner );
 	yyg->yy_hold_char = *yy_cp; \
 	*yy_cp = '\0'; \
 	yyg->yy_c_buf_p = yy_cp;
-<<<<<<< HEAD
-#define YY_NUM_RULES 72
-#define YY_END_OF_BUFFER 73
-=======
-#define YY_NUM_RULES 73
-#define YY_END_OF_BUFFER 74
->>>>>>> group_by
+#define YY_NUM_RULES 74
+#define YY_END_OF_BUFFER 75
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -366,56 +361,30 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[220] =
     {   0,
-<<<<<<< HEAD
-        0,    0,    0,    0,   73,   71,    1,    2,   71,   71,
-       57,   58,    7,   59,   71,    6,    3,    5,   63,   60,
-       65,   68,   68,   68,   68,   68,   68,   68,   68,   68,
-       68,   68,   68,   68,   68,   68,   68,   68,   68,   68,
-       68,   72,   62,    0,   70,    0,    3,    0,   61,   64,
-       68,   68,   68,   68,   68,   68,   44,   68,   68,   68,
-       68,   68,   68,   68,   68,   68,   68,   53,   42,   68,
-       68,   68,   68,   68,   68,   68,   16,   56,   68,   68,
-       68,   68,   68,   68,   68,   68,   68,   68,   68,    0,
-        4,   22,   45,   47,   68,   68,   68,   68,   68,   68,
+        0,    0,    0,    0,   75,   73,    1,    2,   73,   73,
+       59,   60,    7,   61,   73,    6,    3,    5,   65,   62,
+       67,   70,   70,   70,   70,   70,   70,   70,   70,   70,
+       70,   70,   70,   70,   70,   70,   70,   70,   70,   70,
+       70,   70,   74,   64,    0,   72,    0,    3,    0,   63,
+       66,   70,   70,   70,   70,   70,   70,   44,   70,   70,
+       70,   70,   70,   70,   70,   70,   70,   70,   70,   70,
+       55,   42,   70,   70,   70,   70,   70,   70,   70,   16,
+       58,   70,   70,   70,   70,   70,   70,   70,   70,   70,
+       70,   70,    0,    4,   22,   45,   49,   70,   70,   70,
 
-       68,   68,   68,   68,   68,   68,   68,   68,   68,   68,
-       68,   32,   68,   68,   68,   48,   49,   67,   68,   68,
-       68,   68,   28,   68,   50,   68,   68,   68,   68,   68,
-       68,   68,    0,   68,   33,   68,   68,   68,   36,   38,
-       68,   10,   12,   68,    8,   68,   20,    9,   68,   68,
-       68,   68,   24,   52,   66,   35,   41,   68,   68,   68,
-       17,   18,   68,   39,   68,   68,   68,   68,    0,   29,
-       68,   46,   68,   68,   68,   34,   15,   68,   51,   68,
-       68,   43,   68,   68,   13,   68,   68,   68,   21,    0,
-       30,   11,   26,   54,   37,   23,   68,   68,   19,   14,
+       70,   70,   70,   70,   70,   70,   70,   70,   70,   70,
+       70,   70,   70,   70,   70,   70,   32,   70,   70,   70,
+       50,   51,   69,   70,   70,   70,   70,   28,   70,   52,
+       70,   70,   70,   70,   70,   70,   70,    0,   70,   33,
+       70,   70,   70,   36,   38,   70,   10,   12,   70,    8,
+       70,   20,   70,   70,    9,   70,   70,   70,   70,   24,
+       54,   68,   35,   41,   70,   70,   70,   17,   18,   70,
+       39,   70,   70,   70,   70,    0,   29,   70,   48,   70,
+       70,   70,   34,   46,   70,   15,   70,   53,   70,   70,
+       43,   70,   70,   13,   70,   70,   70,   21,    0,   30,
 
-       55,   27,   25,   69,   68,   68,   40,   31,    0
-=======
-        0,    0,    0,    0,   74,   72,    1,    2,   72,   72,
-       58,   59,    7,   60,   72,    6,    3,    5,   64,   61,
-       66,   69,   69,   69,   69,   69,   69,   69,   69,   69,
-       69,   69,   69,   69,   69,   69,   69,   69,   69,   69,
-       69,   69,   73,   63,    0,   71,    0,    3,    0,   62,
-       65,   69,   69,   69,   69,   69,   69,   44,   69,   69,
-       69,   69,   69,   69,   69,   69,   69,   69,   69,   69,
-       55,   42,   69,   69,   69,   69,   69,   69,   69,   16,
-       69,   69,   69,   69,   69,   69,   69,   69,   69,   69,
-       69,   69,    0,    4,   22,   45,   49,   69,   69,   69,
-
-       69,   69,   69,   69,   69,   69,   69,   69,   69,   69,
-       69,   69,   69,   69,   69,   69,   32,   69,   69,   69,
-       50,   51,   68,   69,   69,   69,   69,   28,   69,   52,
-       69,   69,   69,   69,   69,   69,   69,    0,   69,   33,
-       69,   69,   69,   36,   38,   69,   10,   12,   69,    8,
-       69,   20,   69,   69,    9,   69,   69,   69,   69,   24,
-       54,   67,   35,   41,   69,   69,   69,   17,   18,   69,
-       39,   69,   69,   69,   69,    0,   29,   69,   48,   69,
-       69,   69,   34,   46,   69,   15,   69,   53,   69,   69,
-       43,   69,   69,   13,   69,   69,   69,   21,    0,   30,
-
-       11,   26,   56,   47,   37,   23,   69,   69,   19,   14,
-       57,   27,   25,   70,   69,   69,   40,   31,    0
->>>>>>> group_by
+       11,   26,   56,   47,   37,   23,   70,   70,   19,   14,
+       57,   27,   25,   71,   70,   70,   40,   31,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -654,17 +623,10 @@ extern double atof();
 #endif // YYDEBUG
 
 #define RETURN_TOKEN(token) debug_printf("%s\n",#token);return token
-<<<<<<< HEAD
-#line 619 "lex.yy.c"
-/* Prevent the need for linking with -lfl */
-
-#line 622 "lex.yy.c"
-=======
 #line 627 "lex.yy.c"
 /* Prevent the need for linking with -lfl */
 
 #line 630 "lex.yy.c"
->>>>>>> group_by
 
 #define INITIAL 0
 #define STR 1
@@ -942,11 +904,7 @@ YY_DECL
 #line 35 "lex_sql.l"
 
 
-<<<<<<< HEAD
-#line 900 "lex.yy.c"
-=======
 #line 908 "lex.yy.c"
->>>>>>> group_by
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1281,92 +1239,6 @@ RETURN_TOKEN(IN);
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-<<<<<<< HEAD
-#line 100 "lex_sql.l"
-RETURN_TOKEN(OR);
-	YY_BREAK
-case 57:
-YY_RULE_SETUP
-#line 103 "lex_sql.l"
-RETURN_TOKEN(LBRACE);
-	YY_BREAK
-case 58:
-YY_RULE_SETUP
-#line 104 "lex_sql.l"
-RETURN_TOKEN(RBRACE);
-	YY_BREAK
-case 59:
-YY_RULE_SETUP
-#line 106 "lex_sql.l"
-RETURN_TOKEN(COMMA);
-	YY_BREAK
-case 60:
-YY_RULE_SETUP
-#line 107 "lex_sql.l"
-RETURN_TOKEN(EQ);
-	YY_BREAK
-case 61:
-YY_RULE_SETUP
-#line 108 "lex_sql.l"
-RETURN_TOKEN(LE);
-	YY_BREAK
-case 62:
-YY_RULE_SETUP
-#line 109 "lex_sql.l"
-RETURN_TOKEN(NE);
-	YY_BREAK
-case 63:
-YY_RULE_SETUP
-#line 110 "lex_sql.l"
-RETURN_TOKEN(LT);
-	YY_BREAK
-case 64:
-YY_RULE_SETUP
-#line 111 "lex_sql.l"
-RETURN_TOKEN(GE);
-	YY_BREAK
-case 65:
-YY_RULE_SETUP
-#line 112 "lex_sql.l"
-RETURN_TOKEN(GT);
-	YY_BREAK
-case 66:
-YY_RULE_SETUP
-#line 113 "lex_sql.l"
-RETURN_TOKEN(LIKE); 
-	YY_BREAK
-case 67:
-YY_RULE_SETUP
-#line 114 "lex_sql.l"
-RETURN_TOKEN(NOT);
-	YY_BREAK
-case 68:
-YY_RULE_SETUP
-#line 119 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(ID);
-	YY_BREAK
-case 69:
-YY_RULE_SETUP
-#line 122 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);  // 使用正则表达式过滤DATE。需要在yacc文件中增加 %token <string> DATE_STR
-	YY_BREAK
-case 70:
-YY_RULE_SETUP
-#line 123 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like,{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
-	YY_BREAK
-case 71:
-YY_RULE_SETUP
-#line 125 "lex_sql.l"
-printf("Unknown character [%s]\n",yytext); return yytext[0];
-	YY_BREAK
-case 72:
-YY_RULE_SETUP
-#line 126 "lex_sql.l"
-ECHO;
-	YY_BREAK
-#line 1318 "lex.yy.c"
-=======
 #line 98 "lex_sql.l"
 RETURN_TOKEN(EXISTS);
 	YY_BREAK
@@ -1377,86 +1249,90 @@ RETURN_TOKEN(UNIQUE);
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 103 "lex_sql.l"
-RETURN_TOKEN(LBRACE);
+#line 102 "lex_sql.l"
+RETURN_TOKEN(OR);
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 104 "lex_sql.l"
-RETURN_TOKEN(RBRACE);
+#line 105 "lex_sql.l"
+RETURN_TOKEN(LBRACE);
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
 #line 106 "lex_sql.l"
-RETURN_TOKEN(COMMA);
+RETURN_TOKEN(RBRACE);
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 107 "lex_sql.l"
-RETURN_TOKEN(EQ);
+#line 108 "lex_sql.l"
+RETURN_TOKEN(COMMA);
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 108 "lex_sql.l"
-RETURN_TOKEN(LE);
+#line 109 "lex_sql.l"
+RETURN_TOKEN(EQ);
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 109 "lex_sql.l"
-RETURN_TOKEN(NE);
+#line 110 "lex_sql.l"
+RETURN_TOKEN(LE);
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 110 "lex_sql.l"
-RETURN_TOKEN(LT);
+#line 111 "lex_sql.l"
+RETURN_TOKEN(NE);
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 111 "lex_sql.l"
-RETURN_TOKEN(GE);
+#line 112 "lex_sql.l"
+RETURN_TOKEN(LT);
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 112 "lex_sql.l"
-RETURN_TOKEN(GT);
+#line 113 "lex_sql.l"
+RETURN_TOKEN(GE);
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 113 "lex_sql.l"
-RETURN_TOKEN(LIKE); 
+#line 114 "lex_sql.l"
+RETURN_TOKEN(GT);
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 114 "lex_sql.l"
-RETURN_TOKEN(NOT);
+#line 115 "lex_sql.l"
+RETURN_TOKEN(LIKE); 
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 119 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(ID);
+#line 116 "lex_sql.l"
+RETURN_TOKEN(NOT);
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 122 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);  // 使用正则表达式过滤DATE。需要在yacc文件中增加 %token <string> DATE_STR
+#line 121 "lex_sql.l"
+yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 123 "lex_sql.l"
-yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like,{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
+#line 124 "lex_sql.l"
+yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);  // 使用正则表达式过滤DATE。需要在yacc文件中增加 %token <string> DATE_STR
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
 #line 125 "lex_sql.l"
-printf("Unknown character [%s]\n",yytext); return yytext[0];
+yylval->string=strdup(yytext); RETURN_TOKEN(SSS); // add % to support like,{QUOTE}[\40\42\47A-Za-z0-9_/\.\-%]*{QUOTE}            yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 126 "lex_sql.l"
+#line 127 "lex_sql.l"
+printf("Unknown character [%s]\n",yytext); return yytext[0];
+	YY_BREAK
+case 74:
+YY_RULE_SETUP
+#line 128 "lex_sql.l"
 ECHO;
 	YY_BREAK
-#line 1331 "lex.yy.c"
->>>>>>> group_by
+#line 1336 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STR):
 	yyterminate();
@@ -2638,7 +2514,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 126 "lex_sql.l"
+#line 128 "lex_sql.l"
 
 
 void scan_string(const char *str, yyscan_t scanner) {
