@@ -871,7 +871,12 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
     }
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
-
+  for (const Field &field : select_stmt->having_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  }
   std::vector<std::vector<size_t>> having_divs(having_values.size(), std::vector<size_t>(having_ops.size()));
   std::vector<std::vector<int>> divs(groups.size(), std::vector<int>(aggr_size, 0));
   // 开始扫描运算
@@ -1252,6 +1257,12 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     project_oper.add_projection(field.table(), field.meta(), is_single_table);
   }
   for (const Field &field : select_stmt->aggr_fields()) {
+    if (field.meta() == nullptr) {
+      continue;
+    }
+    project_oper.add_projection(field.table(), field.meta(), is_single_table);
+  }
+  for (const Field &field : select_stmt->having_fields()) {
     if (field.meta() == nullptr) {
       continue;
     }

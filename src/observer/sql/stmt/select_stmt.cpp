@@ -422,19 +422,18 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     for (int i = 0; i < select_sql.having_condition_num; i++) {
       Having_Condition condition = select_sql.having_conditions[i];
       Having_Filter filter;
-      bool find = false;
-      for (int j = 0; j < select_sql.aggregation_num; ++j) {
-        if (condition.aggr == select_sql.aggregation_ops[j] && (
-              (condition.attr.relation_name == nullptr && select_sql.aggregation_attrs[j].relation_name == nullptr) ||
-              (condition.attr.relation_name != nullptr && select_sql.aggregation_attrs[j].relation_name != nullptr && strcmp(condition.attr.relation_name, select_sql.aggregation_attrs[j].relation_name) == 0)) &&
-              strcmp(condition.attr.attribute_name, select_sql.aggregation_attrs[j].attribute_name) == 0) {
-                filter.cmpop = condition.cmpOp;
-                filter.right_value = condition.value;
-                filter.value_idx = aggrops_idx_in_fields[j];
-                having_filters.push_back(filter);
-                find = true;
-        }
-      }
+      // bool find = false;
+      // for (int j = 0; j < select_sql.aggregation_num; ++j) {
+      //   if (condition.aggr == select_sql.aggregation_ops[j] && (
+      //         (condition.attr.relation_name == nullptr && select_sql.aggregation_attrs[j].relation_name == nullptr) ||
+      //         (condition.attr.relation_name != nullptr && select_sql.aggregation_attrs[j].relation_name != nullptr && strcmp(condition.attr.relation_name, select_sql.aggregation_attrs[j].relation_name) == 0)) &&
+      //         strcmp(condition.attr.attribute_name, select_sql.aggregation_attrs[j].attribute_name) == 0) {
+      filter.cmpop = condition.cmpOp;
+      filter.right_value = condition.value;
+      having_filters.push_back(filter);
+      //           find = true;
+      //   }
+      // }
       // if (!find) {
       //   return RC::INTERNAL;
       // }
