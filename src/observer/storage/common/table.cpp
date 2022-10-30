@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include <unistd.h>
 
 #include "common/defs.h"
+#include "sql/operator/table_scan_operator.h"
 #include "storage/common/field_meta.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
@@ -891,7 +892,13 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
 RC Table::update_record(Trx *trx, Record *record) 
 {
   RC rc = RC::SUCCESS;
-
+  // // TODO memory leak
+  // auto scan_oper = new TableScanOperator(this);
+  // scan_oper->open();
+  // while (RC::SUCCESS == (rc = scan_oper->next())) {
+  //   Tuple *tuple = scan_oper->current_tuple();
+  //   if (tuple->)
+  // }
 
   // then update new index
   rc = insert_entry_of_indexes(record->data(), record->rid());
@@ -906,25 +913,25 @@ RC Table::update_record(Trx *trx, Record *record)
   // TODO: support transaction
 
   if (trx != nullptr) {
-    // trx->init_trx_info(this, *record);
+    trx->init_trx_info(this, *record);
 
-    // printf("update record:trx not null\n");
-    // rc = trx->update_record(this, record);
+    printf("update record:trx not null\n");
+    rc = trx->update_record(this, record);
 
-    // if (rc != RC::SUCCESS) {
-    //   LOG_ERROR("Failed to log operation(update) to trx");
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to log operation(update) to trx");
 
-    //   // TODO: handle rollback here
+      // TODO: handle rollback here
 
-    //   RC rc2 = record_handler_->delete_record(&record->rid());
-    //   if (rc2 != RC::SUCCESS) {
-    //     LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
-    //         name(),
-    //         rc2,
-    //         strrc(rc2));
-    //   }
-    //   return rc;
-    // }
+      RC rc2 = record_handler_->delete_record(&record->rid());
+      if (rc2 != RC::SUCCESS) {
+        LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+            name(),
+            rc2,
+            strrc(rc2));
+      }
+      return rc;
+    }
     CLogRecord *clog_record = nullptr;
     rc = clog_manager_->clog_gen_record(CLogType::REDO_UPDATE, trx->get_current_id(), clog_record, name(), table_meta_.record_size(), record);
     printf("record data: size %d:", table_meta_.record_size());

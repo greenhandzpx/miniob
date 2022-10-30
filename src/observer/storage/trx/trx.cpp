@@ -130,11 +130,12 @@ RC Trx::update_record(Table *table, Record *record)
       // the record has been deleted
       return RC::GENERIC_ERROR;
     } else {
-      return RC::GENERIC_ERROR;
+      // insert or update, just cover it
+      // TODO
     }
   }
-
   insert_operation(table, Operation::Type::UPDATE, record->rid());
+  return rc;
 }
 
 void Trx::set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool deleted) const
