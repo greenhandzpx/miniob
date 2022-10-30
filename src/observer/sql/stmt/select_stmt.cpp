@@ -401,7 +401,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
-
+  
   size_t n = select_sql.aggregation_num;
   std::vector<AggregationOp> aggregation_ops(n);
   std::vector<size_t> aggrops_idx_in_fields(n);
@@ -409,6 +409,32 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   for (int i = 0; i < n; ++i) {
     aggregation_ops[i] = select_sql.aggregation_ops[i];
     aggrops_idx_in_fields[i] = sum - select_sql.aggrops_idx_in_fields[n - i - 1] - 1;
+  }
+
+  bool having = select_sql.is_having == 1 ? true : false;
+  std::vector<Having_Filter> having_filters;
+  if (having) {
+    for (int i = 0; i < select_sql.having_condition_num; i++) {
+      Having_Condition condition = select_sql.having_conditions[i];
+      Having_Filter filter;
+      bool find = false;
+      for (int j = 0; j < select_sql.aggregation_num; ++j) {
+        if (condition.aggr == select_sql.aggregation_ops[j] && (
+              (condition.attr.relation_name == nullptr && select_sql.aggregation_attrs[j].relation_name == nullptr) ||
+              (condition.attr.relation_name != nullptr && select_sql.aggregation_attrs[j].relation_name != nullptr && strcmp(condition.attr.relation_name, select_sql.aggregation_attrs[j].relation_name) == 0)) &&
+              strcmp(condition.attr.attribute_name, select_sql.aggregation_attrs[j].attribute_name) == 0) {
+                filter.cmpop = condition.cmpOp;
+                filter.right_value = condition.value;
+                filter.value_idx = aggrops_idx_in_fields[j];
+                having_filters.push_back(filter);
+                find = true;
+        }
+      }
+      if (!find) {
+        printf("ri\n");
+        return RC::INTERNAL;
+      }
+    }
   }
 
   // everything alright
@@ -427,6 +453,8 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   if (group) {
     select_stmt->group_fields_.swap(group_fields);
   }
+  select_stmt->having_ = having;
+  select_stmt->having_filters_ = having_filters;
   stmt = select_stmt;
   return RC::SUCCESS;
 }

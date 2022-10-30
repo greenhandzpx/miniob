@@ -49,6 +49,8 @@ public:
   const std::vector<size_t> &arggrops_idx_in_fields() const { return aggrops_idx_in_fields_; }
   const bool order() const { return order_; }
   const bool group() const { return group_; }
+  const bool having() const { return having_; }
+  const std::vector<Having_Filter> having_filters() const { return having_filters_; }
 
 private:
   std::vector<Field> query_fields_;
@@ -59,7 +61,9 @@ private:
   std::vector<size_t> aggrops_idx_in_fields_;
   std::vector<std::pair<Field, bool>> order_fields_;
   std::vector<Field> group_fields_;
+  std::vector<having_filter> having_filters_;
   bool order_;
   bool group_;
+  bool having_;
 };
 

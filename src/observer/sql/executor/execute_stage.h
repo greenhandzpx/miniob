@@ -122,4 +122,6 @@ class GroupKey {
 
 void tuple_to_string(std::ostream &os, const Tuple &tuple);
 
+bool having_cmp(Value v1, Value v2, CompOp cmp);
+
 #endif  //__OBSERVER_SQL_EXECUTE_STAGE_H__

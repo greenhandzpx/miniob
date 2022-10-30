@@ -999,7 +999,67 @@ RC ExecuteStage::group_select_handler(SelectStmt *select_stmt, std::vector<std::
     }
     gid++;
   }
+
+  // having
+  if (select_stmt->having()) {
+    std::vector<std::vector<Value>> ass;
+    auto having_filters = select_stmt->having_filters();
+    for (auto filter : having_filters) {
+      auto idx = filter.value_idx;
+      for (auto vs : values) {
+        if (having_cmp(vs[idx], filter.right_value, filter.cmpop)) {
+          ass.push_back(vs);
+        }
+      }
+    }
+    values.swap(ass);
+  }
+  
+
   return rc;
+}
+
+bool having_cmp(Value v1, Value v2, CompOp cmp) {
+  if (v1.type == NULLS || v2.type == NULLS) {
+    return false;
+  }
+  if (cmp == CompOp::GREAT_THAN) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) > *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) > *static_cast<float *>(v2.data);
+    }
+  } else if (cmp == CompOp::GREAT_EQUAL) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) >= *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) >= *static_cast<float *>(v2.data);
+    }
+  } else if (cmp == CompOp::EQUAL_TO) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) == *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) == *static_cast<float *>(v2.data);
+    }
+  } else if (cmp == CompOp::LESS_EQUAL) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) <= *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) <= *static_cast<float *>(v2.data);
+    }
+  } else if (cmp == CompOp::LESS_THAN) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) < *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) < *static_cast<float *>(v2.data);
+    }
+  } else if (cmp == CompOp::NOT_EQUAL) {
+    if (v1.type == INTS) {
+      return *static_cast<int *>(v1.data) != *static_cast<int *>(v2.data);
+    } else if (v1.type == FLOATS) {
+      return *static_cast<float *>(v1.data) != *static_cast<float *>(v2.data);
+    }
+  }
 }
 
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)

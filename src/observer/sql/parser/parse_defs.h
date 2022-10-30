@@ -121,6 +121,11 @@ typedef struct _having_condition
   Value value;
 } Having_Condition;
 
+typedef struct having_filter {
+  size_t value_idx;
+  CompOp cmpop;
+  Value right_value;
+} Having_Filter;
 
 // struct of select
 typedef struct Selects {
