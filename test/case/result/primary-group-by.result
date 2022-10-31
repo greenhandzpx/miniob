@@ -79,3 +79,24 @@ select t_group_by.id, t_group_by.name, avg(t_group_by.score), avg(t_group_by_2.a
 3 | F | 2 | 23.33
 4 | C | 3 | 20
 T_GROUP_BY.ID | T_GROUP_BY.NAME | AVG(T_GROUP_BY.SCORE) | AVG(T_GROUP_BY_2.AGE)
+
+select t_group_by.id, t_group_by.score, t_group_by.name, t_group_by_2.age from t_group_by, t_group_by_2 where t_group_by.id=t_group_by_2.id;
+
+miniob > select * from t_group_by;
+id | score | name
+3 | 1 | a
+1 | 2 | b
+4 | 3 | c
+3 | 2 | c
+3 | 4 | c
+3 | 3 | d
+3 | 2 | f
+
+miniob > select * from t_group_by_2;
+id | age
+1 | 10
+2 | 20
+3 | 10
+3 | 20
+3 | 40
+4 | 20

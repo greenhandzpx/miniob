@@ -47,9 +47,23 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     return RC::INVALID_ARGUMENT;
   }
 
-  if (select_sql.attr_num == 0) {
+  // select 列表为空
+  if (select_sql.attr_num == 0 && select_sql.aggregation_attr_num == 0) {
     return GENERIC_ERROR;
   }
+
+  // 非 group by ， 只能 select count() 或select id
+  if (select_sql.is_group == 0 && select_sql.attr_num != 0 && select_sql.aggregation_attr_num != 0) {
+    printf("is_group = %d, attr_num is %d, aggr_num is %d\n", select_sql.is_group, select_sql.attr_num, select_sql.aggregation_attr_num);
+    return GENERIC_ERROR;
+  }
+
+  // group by 必须搭配聚合
+  if (select_sql.is_group == 1 && select_sql.aggregation_attr_num == 0) {
+    printf("group but no aggregation\n");
+    return GENERIC_ERROR;
+  }
+
 
   bool order = select_sql.is_order == 1 ? true : false;
 
@@ -197,7 +211,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     for (int i = select_sql.order_attr_num - 1; i >= 0; i--) {
       const RelAttr &relation_attr = select_sql.order_attrs[i];
       bool asc = select_sql.is_asc[i] == 1 ? true : false;
-      if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+      if (0 == strcmp(relation_attr.attribute_name, "*")) {
         return RC::GENERIC_ERROR;
       } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
 
@@ -254,14 +268,150 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
 
   }
 
-  if (select_sql.aggregation_num > 0 && select_sql.aggregation_num != query_fields.size()) {
+  std::vector<Field> group_fields;
+  bool group = select_sql.is_group == 1 ? true : false;
+  if (group) {
+    for (int i = select_sql.group_attr_num - 1; i >= 0; i--) {
+      const RelAttr &relation_attr = select_sql.group_attrs[i];
+
+      if (!common::is_blank(relation_attr.relation_name)) { // TODO
+        //  t1.id
+        const char *table_name = relation_attr.relation_name;
+        const char *field_name = relation_attr.attribute_name;
+
+        auto iter = table_map.find(table_name);
+        if (iter == table_map.end()) {
+          LOG_WARN("no such table in from list: %s", table_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+        Table *table = iter->second;
+        const FieldMeta *field_meta = table->table_meta().field(field_name);
+        if (nullptr == field_meta) {
+          LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+        group_fields.push_back(Field(table, field_meta));
+      } else {
+
+        // id 
+
+        if (tables.size() != 1) {
+          LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        Table *table = tables[0];
+        const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
+        if (nullptr == field_meta) {
+          LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        group_fields.push_back(Field(table, field_meta));
+      }
+    }
+    // 检查 query_field 是否为group_fields的子集
+    for (const Field &query_field : query_fields) {
+      bool valid = false;
+      for (const Field &group_field : group_fields) {
+        if (strcmp(query_field.table_name(), group_field.table_name()) == 0 
+            && strcmp(query_field.field_name(), group_field.field_name()) == 0) {
+              valid = true;
+        }
+      }
+      if (!valid) {
+        return RC::GENERIC_ERROR;
+      }
+    }
+  }
+  if (select_sql.aggregation_num > 0 && select_sql.aggregation_num != select_sql.aggregation_attr_num) {
     /**
       We will have one field corresponding to one aggregation function,
       so the num of fields must be equal to the num of aggregation function
       error case like: select avg(id1, id2) from t1;
     */
+    printf("aggregation_num_is %d but aggregation_attr_num is %d\n", select_sql.aggregation_num, select_sql.aggregation_attr_num);
     return RC::GENERIC_ERROR;
   }
+
+  std::vector<Field> aggr_fields;
+  for (int i = select_sql.aggregation_attr_num - 1; i >= 0; --i) {
+    const RelAttr &relation_attr = select_sql.aggregation_attrs[i];
+    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+
+      // select count(*)
+
+      if (select_sql.aggregation_num > 0) {
+        // if this is an aggregation op
+        // then it must be COUNT
+        // and we just push an empty field
+
+        // 一个聚合函数中包含多列 或者聚合操作不为count(*)
+        if (select_sql.aggregation_ops[i] != COUNT_OP) {
+          return RC::GENERIC_ERROR;
+        }
+
+        aggr_fields.push_back(Field());
+      }
+    } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
+
+      // select t1.id from t1, t2
+      // select t1.* from t1, t2
+
+      const char *table_name = relation_attr.relation_name;
+      const char *field_name = relation_attr.attribute_name;
+
+      if (0 == strcmp(table_name, "*")) {
+        printf("aggr on *.id / *.*\n");
+        return RC::SCHEMA_FIELD_MISSING;
+        // if (0 != strcmp(field_name, "*")) {
+        //   LOG_WARN("invalid field name while table is *. attr=%s", field_name);
+        //   return RC::SCHEMA_FIELD_MISSING;
+        // }
+        // aggr_fields.push_back(Field());
+      } else {
+        auto iter = table_map.find(table_name);
+        if (iter == table_map.end()) {
+          LOG_WARN("no such table in from list: %s", table_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        Table *table = iter->second;
+        if (0 == strcmp(field_name, "*")) {
+          // wildcard_fields(table, query_fields);
+          if (select_sql.aggregation_ops[i] == COUNT_OP) {
+            aggr_fields.push_back(Field(table, nullptr));
+          }
+        } else {
+          const FieldMeta *field_meta = table->table_meta().field(field_name);
+          if (nullptr == field_meta) {
+            LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+
+          aggr_fields.push_back(Field(table, field_meta));
+        }
+      }
+    } else {
+
+      // select id from t1
+
+      if (tables.size() != 1) {
+        LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      Table *table = tables[0];
+      const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
+      if (nullptr == field_meta) {
+        LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      aggr_fields.push_back(Field(table, field_meta));
+    }
+  }
+
 
   LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), query_fields.size());
 
@@ -279,18 +429,106 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     return rc;
   }
 
-  std::vector<AggregationOp> aggregation_ops(select_sql.aggregation_num);
-  std::vector<char *> aggregation_alias(select_sql.aggregation_num);
-  size_t n = query_fields.size();
-  for (int i = 0; i < select_sql.aggregation_num; ++i) {
-    aggregation_ops[i] = select_sql.aggregation_ops[i];
-    aggregation_alias[i] = select_sql.aggregation_alias[i];
     // if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP) {
     //   if (query_fields[n-i-1].attr_type() == AttrType::CHARS ||);
     //       query_fields[n-i-1].attr_type() == AttrType::DATES) {
     //     return RC::GENERIC_ERROR;
     //   } 
     // }
+  
+  size_t n = select_sql.aggregation_num;
+  std::vector<AggregationOp> aggregation_ops(n);
+  std::vector<size_t> aggrops_idx_in_fields(n);
+  std::vector<char *> aggregation_alias(select_sql.aggregation_num);
+  auto sum = query_fields.size() + n;
+  for (int i = 0; i < n; ++i) {
+    aggregation_ops[i] = select_sql.aggregation_ops[i];
+    aggrops_idx_in_fields[i] = sum - select_sql.aggrops_idx_in_fields[n - i - 1] - 1;
+    aggregation_alias[i] = select_sql.aggregation_alias[i];
+  }
+
+  std::vector<AggregationOp> having_ops;
+  for (int i = 0; i < select_sql.having_condition_num; i++) {
+    having_ops.push_back(select_sql.having_conditions[i].aggr);
+  }
+  bool having = select_sql.is_having == 1 ? true : false;
+  std::vector<Having_Filter> having_filters;
+  std::vector<Field> having_fields;
+  if (having) {
+    for (int i = 0; i < select_sql.having_condition_num; i++) {
+      Having_Condition condition = select_sql.having_conditions[i];
+      Having_Filter filter;
+      // bool find = false;
+      // for (int j = 0; j < select_sql.aggregation_num; ++j) {
+      //   if (condition.aggr == select_sql.aggregation_ops[j] && (
+      //         (condition.attr.relation_name == nullptr && select_sql.aggregation_attrs[j].relation_name == nullptr) ||
+      //         (condition.attr.relation_name != nullptr && select_sql.aggregation_attrs[j].relation_name != nullptr && strcmp(condition.attr.relation_name, select_sql.aggregation_attrs[j].relation_name) == 0)) &&
+      //         strcmp(condition.attr.attribute_name, select_sql.aggregation_attrs[j].attribute_name) == 0) {
+      filter.cmpop = condition.cmpOp;
+      filter.right_value = condition.value;
+      having_filters.push_back(filter);
+      //           find = true;
+      //   }
+      // }
+      // if (!find) {
+      //   return RC::INTERNAL;
+      // }
+    for (int i = select_sql.having_condition_num - 1; i >= 0; --i) {
+      const RelAttr &relation_attr = select_sql.having_conditions[i].attr;
+      if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+          if (select_sql.having_conditions[i].aggr != COUNT_OP) {
+            return RC::GENERIC_ERROR;
+          }
+        having_fields.push_back(Field());
+      } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
+        const char *table_name = relation_attr.relation_name;
+        const char *field_name = relation_attr.attribute_name;
+        if (0 == strcmp(table_name, "*")) {
+          printf("aggr on *.id / *.*\n");
+          return RC::SCHEMA_FIELD_MISSING;
+        } else {
+          auto iter = table_map.find(table_name);
+          if (iter == table_map.end()) {
+            LOG_WARN("no such table in from list: %s", table_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+
+          Table *table = iter->second;
+          if (0 == strcmp(field_name, "*")) {
+            // wildcard_fields(table, query_fields);
+            if (select_sql.aggregation_ops[i] == COUNT_OP) {
+              having_fields.push_back(Field(table, nullptr));
+            }
+          } else {
+            const FieldMeta *field_meta = table->table_meta().field(field_name);
+            if (nullptr == field_meta) {
+              LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
+              return RC::SCHEMA_FIELD_MISSING;
+            }
+
+            having_fields.push_back(Field(table, field_meta));
+          }
+        }
+      } else {
+
+        // id
+
+        if (tables.size() != 1) {
+          LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        Table *table = tables[0];
+        const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name);
+        if (nullptr == field_meta) {
+          LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        having_fields.push_back(Field(table, field_meta));
+      }
+    }
+    }
   }
 
   // everything alright
@@ -301,9 +539,20 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   select_stmt->aggregation_ops_ = aggregation_ops;
   select_stmt->aggregation_alias_ = aggregation_alias;
   stmt = select_stmt;
+  select_stmt->aggrops_idx_in_fields_ = aggrops_idx_in_fields;
   select_stmt->order_ = order;
+  select_stmt->aggr_fields_.swap(aggr_fields);
+  select_stmt->having_fields_.swap(having_fields);
+  select_stmt->having_ops_.swap(having_ops);
   if (order) {
     select_stmt->order_fields_.swap(order_fields);
   }
+  select_stmt->group_ = group;
+  if (group) {
+    select_stmt->group_fields_.swap(group_fields);
+  }
+  select_stmt->having_ = having;
+  select_stmt->having_filters_ = having_filters;
+  stmt = select_stmt;
   return RC::SUCCESS;
 }

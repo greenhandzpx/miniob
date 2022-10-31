@@ -151,6 +151,8 @@ ParserContext *get_context(yyscan_t scanner)
 		ORDER
 		BY
 		ASC
+		GROUP
+		HAVING
 
 		OR
 
@@ -510,7 +512,7 @@ select:
 	select_query SEMICOLON;
 
 select_query:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where order
+    SELECT select_attr FROM ID rel_list where group order
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4, NULL);
@@ -629,30 +631,74 @@ aggregate_attr:
 
 aggregation_field_attr:
 	/* empty */
-	| STAR attr_list {
+	| STAR aggrattr_list {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL, "*");
 		printf("aggregation: get a attr *\n");
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
 	}
-	| ID attr_list {
+	| ID aggrattr_list {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL, $1);
 		printf("aggregation: get a attr %s\n", $1);
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
 	}
-	| ID DOT ID attr_list {
+	| ID DOT ID aggrattr_list {
 		RelAttr attr;
 		relation_attr_init(&attr, $1, $3);
-		printf("aggregation: get a attr %s\n", $3);
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		printf("aggregation: get a attr %s\n", $1);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
 		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
 		CONTEXT->aggregation_num++;	
-	};
+	}
+	| ID DOT STAR aggrattr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, "*");
+		printf("aggregation: get a attr %s\n", $1);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggregation_op(&CONTEXT->ssql->sstr.selection, CONTEXT->aggregation_ops[CONTEXT->aggregation_num]);
+		CONTEXT->aggregation_num++;	
+	}
+	;
+
+aggrattr_list:
+	| COMMA STAR aggrattr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		printf("aggregation: get a attr *\n");
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID aggrattr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $2);
+		printf("aggregation: get a attr %s\n", $2);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT ID aggrattr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, $2, $4);
+		printf("aggregation: get a attr %s\n", $2);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT STAR aggrattr_list {
+		RelAttr attr;
+		relation_attr_init(&attr, $2, "*");
+		printf("aggregation: get a attr %s\n", $2);
+		// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		selects_append_aggrattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	;
 
 aggregate_op: 
 	  COUNT { CONTEXT->aggregation_ops[CONTEXT->aggregation_num] = COUNT_OP; }
@@ -678,23 +724,22 @@ aggregate_attr_list:
 		CONTEXT->ssql->sstr.selection.aggregation_alias[CONTEXT->last_aggregation_seqno-1] = $4;
 		CONTEXT->last_aggregation_seqno--;
 	}
-	/* the followings are error cases */
-	| COMMA STAR aggregate_attr_list {
+	| COMMA STAR attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID aggregate_attr_list{
+	| COMMA ID attr_list{
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID DOT ID  aggregate_attr_list {
+	| COMMA ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID DOT STAR aggregate_attr_list {
+	| COMMA ID DOT STAR attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
@@ -738,8 +783,7 @@ attr_list:
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	} 
-	/* the followings are error case */
-	| COMMA aggregate_attr attr_list {
+	| COMMA aggregate_attr aggregate_attr_list {
 
 	}
   	;
@@ -772,6 +816,204 @@ where:
 				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
 			}
     ;
+
+group:
+	{
+		selects_set_group(&CONTEXT->ssql->sstr.selection, 0);
+	}
+	| GROUP BY group_attrs having {
+		selects_set_group(&CONTEXT->ssql->sstr.selection, 1);
+	}
+	;
+
+group_attrs:
+	group_attr group_attr_list {
+		// 递归。最新秒杀升级版。
+	}
+	;
+
+group_attr_list:
+	| COMMA group_attr group_attr_list {
+		// 递归。最新秒杀升级版。
+	}
+	;
+
+// 只在此处添加attr就行。这就是最新秒杀升级版的含金量!
+group_attr: 
+	ID {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $1);
+		selects_append_groupattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID DOT ID {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, $3);
+		selects_append_groupattr(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	;
+
+having:
+	{
+		selects_set_having(&CONTEXT->ssql->sstr.selection, 0);
+	}
+	| HAVING having_condition having_condition_list {
+		// 递归
+		selects_set_having(&CONTEXT->ssql->sstr.selection, 1);
+	}
+	;
+
+having_condition_list:
+	| COMMA having_condition having_condition_list{
+		// 递归
+	}
+	;
+
+// 题目 having 只有 having aggr(id) comOp value这种操作，所以写起来大大滴简单了，直接五种暴力穷举秒杀。（秒杀个锤锤，不止五种）
+// 使用 having 语句专属的无敌史诗级简化having_condition存储筛选条件
+// 暂时cv大法暴力粘贴穷举，有时间再爆改。
+
+having_condition:
+	| COUNT LBRACE ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		Having_Condition condition;
+		having_condition_init(&condition, COUNT_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| COUNT LBRACE STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, COUNT_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| COUNT LBRACE ID DOT ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, $5);
+		Having_Condition condition;
+		having_condition_init(&condition, COUNT_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| COUNT LBRACE ID DOT STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, COUNT_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| AVG LBRACE ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		Having_Condition condition;
+		having_condition_init(&condition, AVG_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| AVG LBRACE STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, AVG_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| AVG LBRACE ID DOT ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, $5);
+		Having_Condition condition;
+		having_condition_init(&condition, AVG_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| AVG LBRACE ID DOT STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, AVG_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MAX LBRACE ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		Having_Condition condition;
+		having_condition_init(&condition, MAX_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MAX LBRACE STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, MAX_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MAX LBRACE ID DOT ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, $5);
+		Having_Condition condition;
+		having_condition_init(&condition, MAX_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MAX LBRACE ID DOT STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, MAX_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MIN LBRACE ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		Having_Condition condition;
+		having_condition_init(&condition, MIN_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MIN LBRACE STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, MIN_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MIN LBRACE ID DOT ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, $5);
+		Having_Condition condition;
+		having_condition_init(&condition, MIN_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| MIN LBRACE ID DOT STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, MIN_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| SUM LBRACE ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $3);
+		Having_Condition condition;
+		having_condition_init(&condition, SUM_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| SUM LBRACE STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "$3");
+		Having_Condition condition;
+		having_condition_init(&condition, SUM_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| SUM LBRACE ID DOT ID RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, $5);
+		Having_Condition condition;
+		having_condition_init(&condition, SUM_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	| SUM LBRACE ID DOT STAR RBRACE comOp value {
+		RelAttr attr;
+		relation_attr_init(&attr, $3, "*");
+		Having_Condition condition;
+		having_condition_init(&condition, SUM_OP, CONTEXT->comp, &CONTEXT->values[CONTEXT->value_length - 1], &attr);
+		selects_append_havingcondition(&CONTEXT->ssql->sstr.selection, &condition);
+	}
+	;
 
 order:
 	{
