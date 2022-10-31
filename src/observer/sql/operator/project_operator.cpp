@@ -57,8 +57,11 @@ void ProjectOperator::add_projection(const Table *table, const FieldMeta *field_
   // 对多表查询来说，展示的alias 需要带表名字
   TupleCellSpec *spec = new TupleCellSpec(new FieldExpr(table, field_meta));
   if (field_meta->has_alias()) {
+    // the field has alias, then just print the alias no matter wether this is multi tables or not
     printf("column alias %s\n", field_meta->get_alias());
-    spec->set_alias(field_meta->get_alias());
+    spec->set_alias(strdup(field_meta->get_alias()));
+    // then remove the alias
+    const_cast<FieldMeta *>(field_meta)->set_alias("");
   } else {
     if (is_single_table) {
       if (field_meta->has_alias()) {

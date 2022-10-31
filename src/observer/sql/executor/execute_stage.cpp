@@ -270,6 +270,7 @@ void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
     }
     if (alias) {
       os << alias;
+      aggropscnt++;
       continue;
     }
     switch (aggregation_op) {
