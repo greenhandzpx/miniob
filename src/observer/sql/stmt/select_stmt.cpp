@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
+#include <unordered_set>
 
 SelectStmt::~SelectStmt()
 {
@@ -63,6 +64,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     }
   }
   
+  std::unordered_set<std::string> alias_set_in_this_level;
   for (size_t i = 0; i < select_sql.relation_num; i++) {
     const char *table_name = select_sql.relations[i];
     if (nullptr == table_name) {
@@ -80,6 +82,10 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     table_map.insert(std::pair<std::string, Table*>(table_name, table));
     const char *table_alias = select_sql.relation_alias[i];
     if (!common::is_blank(table_alias)) {
+      if (alias_set_in_this_level.find(std::string(table_alias)) != alias_set_in_this_level.end()) {
+        return RC::SCHEMA_TABLE_NAME_ILLEGAL;
+      }
+      alias_set_in_this_level.emplace(std::string(table_alias));
       const_cast<TableMeta&>(table->table_meta()).set_alias(table_alias);
       table_map.insert(std::pair<std::string, Table*>(table_alias, table));
     }
