@@ -43,6 +43,7 @@ public:
   const std::vector<Field> &query_fields() const { return query_fields_; }
   FilterStmt *filter_stmt() const { return filter_stmt_; }
   const std::vector<AggregationOp> &aggregation_ops() const { return aggregation_ops_; }
+  const std::vector<char *> &aggregation_alias() const { return aggregation_alias_; }
   const std::vector<std::pair<Field, bool>> &order_fields() const { return order_fields_; }
   const bool order() const { return order_; };
 
@@ -51,6 +52,7 @@ private:
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
   std::vector<AggregationOp> aggregation_ops_;
+  std::vector<char *> aggregation_alias_;
   std::vector<std::pair<Field, bool>> order_fields_;
   bool order_;
 };

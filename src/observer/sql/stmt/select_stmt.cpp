@@ -271,9 +271,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   }
 
   std::vector<AggregationOp> aggregation_ops(select_sql.aggregation_num);
+  std::vector<char *> aggregation_alias(select_sql.aggregation_num);
   size_t n = query_fields.size();
   for (int i = 0; i < select_sql.aggregation_num; ++i) {
     aggregation_ops[i] = select_sql.aggregation_ops[i];
+    aggregation_alias[i] = select_sql.aggregation_alias[i];
     // if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP) {
     //   if (query_fields[n-i-1].attr_type() == AttrType::CHARS ||);
     //       query_fields[n-i-1].attr_type() == AttrType::DATES) {
@@ -288,6 +290,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
   select_stmt->aggregation_ops_ = aggregation_ops;
+  select_stmt->aggregation_alias_ = aggregation_alias;
   stmt = select_stmt;
   select_stmt->order_ = order;
   if (order) {

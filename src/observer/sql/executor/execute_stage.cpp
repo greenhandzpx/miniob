@@ -241,10 +241,16 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
 }
 void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
   auto aggregation_ops = select_stmt->aggregation_ops();
+  auto aggregation_alias = select_stmt->aggregation_alias();
   for (int i = 0; i < aggregation_ops.size(); ++i) {
     AggregationOp aggregation_op = aggregation_ops[i];
+    char * alias = aggregation_alias[i];
     if (i != 0) {
       os << " | ";
+    }
+    if (alias) {
+      os << alias;
+      continue;
     }
     switch (aggregation_op) {
       case COUNT_OP: {

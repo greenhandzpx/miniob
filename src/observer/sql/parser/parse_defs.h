@@ -125,6 +125,7 @@ typedef struct Selects {
 
   size_t aggregation_num;
   AggregationOp aggregation_ops[MAX_NUM];
+  char *aggregation_alias[MAX_NUM];
   
   size_t order_attr_num;
   RelAttr order_attrs[MAX_NUM];    // attrs in order by
