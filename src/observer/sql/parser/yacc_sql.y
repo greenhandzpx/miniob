@@ -552,6 +552,12 @@ select_attr:
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+    | STAR as_option ID attr_list {  
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			attr.alias_name = $3;
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);

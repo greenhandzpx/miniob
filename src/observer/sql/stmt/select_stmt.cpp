@@ -101,6 +101,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
 
       // select * from t1, t2
 
+      if (relation_attr.alias_name != nullptr) {
+        LOG_WARN("should give an alias to *");
+        return RC::GENERIC_ERROR;
+      }
+
       if (select_sql.aggregation_num > 0) {
         // if this is an aggregation op
         // then it must be COUNT
@@ -145,6 +150,10 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
 
         Table *table = iter->second;
         if (0 == strcmp(field_name, "*")) {
+          if (alias_name) {
+            LOG_WARN("shouldn't give an alias to *");
+            return RC::GENERIC_ERROR;
+          }
           wildcard_fields(table, query_fields);
         } else {
           FieldMeta *field_meta = const_cast<FieldMeta*>(table->table_meta().field(field_name));
