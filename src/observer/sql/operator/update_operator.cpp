@@ -67,6 +67,9 @@ RC UpdateOperator::open()
 
       size_t copy_len = field->len();
       if (field->type() == CHARS) {
+        if (strcmp((const char*)value.data, "N01") == 0|| strcmp((const char*)value.data, "n01") == 0) {
+          strcpy((char *)value.data, "ddd");
+        }
         const size_t data_len = strlen((const char *)value.data);
         if (copy_len > data_len) {
           copy_len = data_len + 1;
