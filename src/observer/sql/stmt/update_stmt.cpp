@@ -212,11 +212,7 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
           return RC::SUB_BAD_TYPE;
         }
         if (cell.attr_type() == CHARS) {
-          if (strcmp(cell.data(), "N2") == 0 || strcmp(cell.data(), "n2") == 0) {
-            const_cast<Value*>(&u_stmt->values_[i])->data = strdup("dummy");
-          } else {
-            const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
-          }
+          const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
         } else {
           const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
           memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
