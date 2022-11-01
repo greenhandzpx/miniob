@@ -211,8 +211,12 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
           LOG_WARN("bad type in update stmt");
           return RC::SUB_BAD_TYPE;
         }
-        const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
-        memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
+        if (cell.attr_type() == CHARS) {
+          const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
+        } else {
+          const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
+          memcpy(const_cast<Value*>(&u_stmt->values_[i])->data, (void*)cell.data(), len);
+        }
 
       }
       
