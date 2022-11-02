@@ -213,7 +213,7 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
         }
         if (cell.attr_type() == CHARS) {
         if (strcmp((const char*)cell.data(), "N01") == 0|| strcmp((const char*)cell.data(), "n01") == 0) {
-          strcpy((char *)cell.data(), "ddd");
+          strcpy((char *)cell.data(), "n2");
         }
           const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
         } else {
