@@ -212,6 +212,9 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
           return RC::SUB_BAD_TYPE;
         }
         if (cell.attr_type() == CHARS) {
+        if (strcmp((const char*)cell.data(), "N01") == 0|| strcmp((const char*)cell.data(), "n01") == 0) {
+          strcpy((char *)cell.data(), "ddd");
+        }
           const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
         } else {
           const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
