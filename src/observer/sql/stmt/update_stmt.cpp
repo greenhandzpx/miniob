@@ -173,7 +173,12 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
       // normal select
       Tuple *tuple;
       int j = 0;
+      TupleCell cell;
       while ((rc = ExecuteStage::normal_select_handler(s_stmt, tuple, project_oper)) == RC::SUCCESS) {
+        // printf("tuple1:");
+        // tuple_to_string(std::cout, *tuple);
+        // printf("\n");
+        tuple->cell_at(0, cell);
         if (tuple->cell_num() != 1) {
           printf("Operand should contain 1 column(s)\n");
           rc = RC::SUB_COL_ERROR;
@@ -193,8 +198,11 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
         return rc;
       }
       
-      TupleCell cell;
-      tuple->cell_at(0, cell);
+      // printf("tuple2:");
+      // tuple_to_string(std::cout, *tuple);
+      // printf("\n");
+
+      // tuple->cell_at(0, cell);
 
       const_cast<Value*>(&u_stmt->values_[i])->type = cell.attr_type();
 
@@ -212,9 +220,9 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
           return RC::SUB_BAD_TYPE;
         }
         if (cell.attr_type() == CHARS) {
-        if (strcmp((const char*)cell.data(), "N01") == 0|| strcmp((const char*)cell.data(), "n01") == 0) {
-          strcpy((char *)cell.data(), "n2");
-        }
+          // if (strcmp((const char*)cell.data(), "N01") == 0|| strcmp((const char*)cell.data(), "n01") == 0) {
+          //   strcpy((char *)cell.data(), "n2");
+          // }
           const_cast<Value*>(&u_stmt->values_[i])->data = strdup(cell.data());
         } else {
           const_cast<Value*>(&u_stmt->values_[i])->data = malloc(len);
