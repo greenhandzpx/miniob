@@ -123,7 +123,11 @@ RC UpdateStmt::create(Db *db, const Updates &update, Stmt *&stmt)
       }
     }
     // 1. create select_stmt
-    SelectStmt::create(db, *(update.select_vec[i]), sstmt, nullptr);
+    if (RC::SUCCESS != (rc = SelectStmt::create(db, *(update.select_vec[i]), sstmt, nullptr))) {
+      LOG_WARN("update-select: create sub query failed");
+      printf("update-select: create sub query failed\n");
+      return RC::GENERIC_ERROR;
+    }
     auto s_stmt = dynamic_cast<SelectStmt*>(sstmt);
     // 2. create project_oper
     PredicateOperator pred_oper(s_stmt->filter_stmt());
