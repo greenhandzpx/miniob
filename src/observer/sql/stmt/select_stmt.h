@@ -71,5 +71,14 @@ private:
   bool order_;
   bool group_;
   bool having_;
+
+//*******************************************func****************************************************
+  public:
+  FunctionOp function_ops_[MAX_NUM];
+  Value function_value1_[MAX_NUM];
+  Value function_value2_[MAX_NUM];
+  size_t attr_num_;
+  int isfunc_;
+  //*******************************************func****************************************************
 };
 

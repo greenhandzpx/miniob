@@ -27,3 +27,8 @@ bool string2float(std::string str, float* num);
 bool is_like(std::string s1, std::string s2);
 // ********************************like*****************************************
 
+// ********************************func*****************************************
+float round(float f, int num);
+char* date_format(int date, char* format);
+// ********************************func*****************************************
+

@@ -65,6 +65,15 @@ typedef enum {
   SUM_OP,
 } AggregationOp;
 
+//************************************************************func********************************************************************
+typedef enum {
+  NO_FUNCTION_OP,
+  LENGTH_OP,
+  ROUND_OP,
+  DATE_FORMAT_OP,
+} FunctionOp;
+//************************************************************func********************************************************************
+
 //属性值类型
 typedef enum
 {
@@ -156,6 +165,14 @@ typedef struct Selects {
   size_t having_condition_num;
   Having_Condition having_conditions[MAX_NUM];
   int is_having; 
+
+  //*****************************************************func*************************************************************
+  FunctionOp function_ops[MAX_NUM];
+  Value function_value1[MAX_NUM];
+  Value function_value2[MAX_NUM];
+  int isfunc;
+  //*****************************************************func*************************************************************
+
 } Selects;
 
 // struct of insert
@@ -317,6 +334,17 @@ void selects_append_relation(Selects *selects, const char *relation_name, const 
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
 void selects_append_aggrattr(Selects *selects, RelAttr *rel_attr);
+//******************************************func******************************************************
+void selects_append_funcop(Selects *selects, FunctionOp function_op);
+// first args
+void selects_append_funcvalue1(Selects *selects, Value * value);
+// second args
+void selects_append_funcvalue2(Selects *selects, Value * value);
+
+void selects_modify_alias_name(Selects *selects, char *attr_name);
+
+char* value2string(Value * value);
+//******************************************func******************************************************
 void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc);
 void selects_append_groupattr(Selects *selects, RelAttr *rel_attr);
 void selects_append_havingcondition(Selects *selects, Having_Condition *condition); 

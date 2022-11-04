@@ -55,7 +55,7 @@ public:
     return attr_type_;
   }
 
-private:
+public:
   AttrType attr_type_ = UNDEFINED;
   int length_ = -1;
   char *data_ = nullptr; // real data. no need to move to field_meta.offset

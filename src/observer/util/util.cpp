@@ -266,3 +266,68 @@ bool is_like(std::string s1, std::string s2)
 // ********************************like*****************************************
 
 
+// ********************************func*****************************************
+
+
+float round(float f, int num)
+{
+   int d = 1;
+   for (; num != 0; num--) d *= 10;
+   int i = f * d;
+   f = (float)i;
+   // printf("fffffffffffffffff  %f\n", f / d);
+   return f / d;
+}
+
+char* date_format(int date, char* format) 
+{
+   int year = date / 10000;
+   int y = year - ((year / 100) * 100);
+   int month = (date / 100) - (year * 100);
+   int day = date - (year * 10000) - (month * 100);
+
+   std::stringstream stream_data(format);
+   std::vector<std::string> subs2;
+   std::string res;
+
+   while (std::getline(stream_data, res, '-')) {
+      subs2.push_back(res);
+   }
+
+   std::vector<std::string>::iterator it = subs2.begin();
+   while (it != subs2.end()) {
+      if (*it == "") it = subs2.erase(it);
+      else it++;
+   }
+
+   std::string s = std::string("");
+   it = subs2.begin();
+   while (it != subs2.end()) {
+      
+      if (*it == "%Y") {
+         s.append(std::to_string(year));
+         s.append("-");
+         // std::cout << s  <<std::endl;
+      } else if (*it == "%y") {
+         if (y < 10) s.append("0");
+         s.append(std::to_string(y));
+         s.append("-");
+         // std::cout << s  <<std::endl;
+      } else if (*it == "%m") {
+         if (month < 10) s.append("0");
+         s.append(std::to_string(month));
+         s.append("-");
+         // std::cout << s  <<std::endl;
+      } else if (*it == "%d") {
+         if (day < 10) s.append("0");
+         s.append(std::to_string(day));
+         s.append("-");
+         // std::cout << s  <<std::endl;
+      } else {
+         s = "invalid";
+      }
+      it++;
+   }
+   return const_cast<char*>(s.substr(0, s.size() - 1).data());
+}
+// ********************************func*****************************************

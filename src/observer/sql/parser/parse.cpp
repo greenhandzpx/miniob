@@ -19,6 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "sql/parser/parse_defs.h"
 
+
+
 RC parse(char *st, Query *sqln);
 
 #ifdef __cplusplus
@@ -186,9 +188,58 @@ void attr_info_destroy(AttrInfo *attr_info)
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
+  //******************************************func******************************************************
+  selects->function_ops[selects->attr_num] = NO_FUNCTION_OP;
+  selects->function_value1[selects->attr_num].type = UNDEFINED;
+  selects->function_value2[selects->attr_num].type = UNDEFINED;
+  //******************************************func******************************************************
   selects->attributes[selects->attr_num++] = *rel_attr;
   printf("attr_num = %d\n", selects->attr_num);
 }
+
+//**********************************************************func******************************************************************
+void selects_append_funcop(Selects *selects, FunctionOp function_op)
+{
+  selects->function_ops[selects->attr_num - 1] = function_op;
+  selects->isfunc = 1;
+}
+
+void selects_append_funcvalue1(Selects *selects, Value * value)
+{
+  
+  if (value == 0) selects->function_value1[selects->attr_num - 1].type = UNDEFINED;
+  else selects->function_value1[selects->attr_num - 1] = *value;
+}
+
+void selects_append_funcvalue2(Selects *selects, Value * value)
+{
+  if (value == 0) selects->function_value2[selects->attr_num - 1].type = UNDEFINED;
+  else selects->function_value2[selects->attr_num - 1] = *value;
+}
+
+void selects_modify_alias_name(Selects *selects, char *attr_name) {
+  selects->attributes[selects->attr_num - 1].alias_name = attr_name;
+}
+
+char* value2string(Value * value) {
+  char* res = (char*)malloc(30);
+
+  if (value->type == INTS) {
+    sprintf(res, "%d", *(int*)value->data);
+  } else if (value->type = CHARS) {
+    strcat(res, "\'");
+    strcat(res, (char*)value->data);
+    strcat(res, "\'");
+  } else if (value->type = FLOATS) {
+    sprintf(res, "%f", *(float*)value->data);
+  } else {
+    printf("do not support %d to char* in value2string, panic\n", value->type);
+    while(1);
+  }
+ 
+  return res;
+}
+//**********************************************************func******************************************************************
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
 {
   selects->aggrops_idx_in_fields[selects->aggregation_num] = selects->aggregation_num + selects->attr_num;

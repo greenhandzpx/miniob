@@ -41,42 +41,14 @@ RC PredicateOperator::open()
 RC PredicateOperator::next()
 {
   RC rc = RC::SUCCESS;
-
-  // if (children_.size() == 1) {
-  //   Operator *oper = children_[0];
-
-  //   while (RC::SUCCESS == (rc = oper->next())) {
-  //     Tuple *tuple = oper->current_tuple();
-  //     if (nullptr == tuple) {
-  //       rc = RC::INTERNAL;
-  //       LOG_WARN("failed to get tuple from operator");
-  //       break;
-  //     }
-
-  //     if (do_predicate(static_cast<RowTuple &>(*tuple))) {
-  //       return rc;
-  //     }
-  //   }
-  //   return rc;
-  // }
-
   while (RC::SUCCESS == (rc = next_when_multi_tables())) {
-    // if (current_tuple_ != nullptr) {
-    //   // free last current tuple
-    //   delete current_tuple_;
-    // }
     if (parent_tuple_ != nullptr) {
       if (current_tuple_->size() > children_.size()) {
         current_tuple_->pop_back();
       }
       printf("sub query has a parent tuple\n");
       current_tuple_->push_back(parent_tuple_);
-      // tuple_stack_.push_back(parent_tuple_);
     }
-    // printf("get a new composite tuple\n");
-    // current_tuple_ = new CompositeTuple(tuple_stack_);
-
-    // Tuple *tuple = current_tuple();
     if (nullptr == current_tuple_) {
       rc = RC::INTERNAL;
       LOG_WARN("failed to get tuple from operator");
@@ -112,11 +84,6 @@ RC PredicateOperator::next_when_multi_tables() {
 
   int target_tuple_num = children_.size() + (parent_tuple_ ? 1 : 0);
   if (tuple_stack_.size() != target_tuple_num) {
-    // this must be the first time to call 
-    // if (tuple_stack_.size() != 0) {
-    //   LOG_WARN("something error happens");
-    //   return RC::INTERNAL;
-    // }
     for (auto child: children_) {
       if (child->next() != RC::SUCCESS) {
         LOG_WARN("shouldn't be empty table in predicate chilren");
@@ -134,10 +101,6 @@ RC PredicateOperator::next_when_multi_tables() {
   int i = n - 1;
   // tuple_stack_.pop_back();
   while (i >= 0 && (rc = children_[i]->next()) != RC::SUCCESS) {
-    // if (i <= 3) {
-    //   printf("nothing in this node, i: %d\n", i);
-    // }
-    // tuple_stack_.pop_back();
     stk_top_--;
     children_[i]->close();
     --i;
