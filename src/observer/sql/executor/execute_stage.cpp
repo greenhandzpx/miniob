@@ -365,6 +365,46 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
   }
 }
 
+void value_to_string(std::ostream &os, Value *values, int length)
+{
+  bool first_field = true;
+  for (int i = 0; i < length; i++) {
+    Value v = values[i];
+
+    if (!first_field) {
+      os << " | ";
+    } else {
+      first_field = false;
+    }
+    
+    switch (v.type) {
+      case INTS: {
+        os << *(int *)v.data;
+      } break;
+      case DATES: {
+        int value = *(int*)v.data;
+        char buf[16] = {0};
+        snprintf(buf,sizeof(buf),"%04d-%02d-%02d",value/10000,    (value%10000)/100,value%100); // 注意这里月份和天数，不足两位时需要填充0
+        os << buf;
+      } break;
+      case FLOATS: {
+        float f = *(float*)v.data;
+        os << double2string(f);
+      } break;
+      case CHARS: {
+        for (int i = 0; ((char*)v.data)[i] != '\0'; i++) {
+          os << ((char*)v.data)[i];
+        }
+      } break;
+      
+      default: {
+        LOG_WARN("unsupported attr type: %d", v.type);
+      } break;
+    }
+
+  }
+}
+
 IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
@@ -1454,100 +1494,107 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         ss_tuples.erase(candidate_it);
       }
     } else {
-      
-      
-      while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
-        printf("do_select: get a tuple\n");
-        // ************************************************func********************************************************
+      // ************************************************func********************************************************
+      if (select_stmt->isvaluefunc_ == 1) {
+        
+        value_to_string(ss, select_stmt->function_value1_, select_stmt->attr_num_);
+        ss << std::endl;
+      } else {
+        while ((rc = normal_select_handler(select_stmt, tuple, project_oper)) == RC::SUCCESS) {
+          printf("do_select: get a tuple\n");
 
-        if (select_stmt->isfunc_ == 0) {
-          tuple_to_string(ss, *tuple);
-        } else {
+          if (select_stmt->isfunc_ == 0) {
+            tuple_to_string(ss, *tuple);
+          } else {
 
-          std::vector<std::pair<int, TupleCellSpec *>> modify;
-          TupleCellSpec * oold = new TupleCellSpec;
-          for (int a = 0; a < select_stmt->attr_num_; a++) {
-            // printf("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz %d\n", a);
-            if (select_stmt->function_ops_[a] == NO_FUNCTION_OP) {
-              continue;
-            }
-
-            else if (select_stmt->function_value1_[a].type != UNDEFINED) {
-              auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
-              if (res_tuple == nullptr) return RC::MISS_TYPE;
-              rc =  res_tuple->modify_cell_spec_at(select_stmt->attr_num_ - a - 1, &select_stmt->function_value1_[a], modify, oold);
-            } 
-
-            else {
-              
-              TupleCell cell;
-              rc = tuple->cell_at(select_stmt->attr_num_ - a - 1, cell);
-
-              Value *v = new Value;
-              v->data = malloc(30);
-              if (select_stmt->function_ops_[a] == LENGTH_OP) {
-                // printf("1111111111111111111111111 \n", select_stmt->attr_num_);
-                if (cell.attr_type() != CHARS) {
-                  printf("panic1 %d\n", cell.attr_type());
-                  return RC::MISS_TYPE;
-                }
-                v->type = INTS;
-                *(int*)v->data = strlen((char*)cell.data_);
-              } else if (select_stmt->function_ops_[a] == ROUND_OP) {
-                // printf("222222222222222222222222222\n");
-                if (cell.attr_type() != FLOATS) {
-                  printf("panic2\n");
-                  return RC::MISS_TYPE;
-                }
-                v->type = FLOATS;
-                *(float*)v->data = round(*(float*)cell.data_, *(int*)(select_stmt->function_value2_[a].data));
-              } else if (select_stmt->function_ops_[a] == DATE_FORMAT_OP) {
-                // printf("33333333333333333333333333333333\n");
-                if (cell.attr_type() != DATES) {
-                  printf("panic3\n");
-                  return RC::MISS_TYPE;
-                }
-                v->type = CHARS;
-                v->data = date_format(*(int*)cell.data_, (char*)select_stmt->function_value2_[a].data);
-              } else {
-                printf("panic4\n");
-                return RC::MISS_TYPE;
+            std::vector<std::pair<int, TupleCellSpec *>> modify;
+            TupleCellSpec * oold = new TupleCellSpec;
+            for (int a = 0; a < select_stmt->attr_num_; a++) {
+              // printf("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz %d\n", a);
+              if (select_stmt->function_ops_[a] == NO_FUNCTION_OP) {
+                continue;
               }
 
-              auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
-              if (res_tuple == nullptr) return RC::MISS_TYPE;
-              rc = res_tuple->modify_cell_spec_at(select_stmt->attr_num_ - a - 1, v, modify, oold);
+              else if (select_stmt->function_value1_[a].type != UNDEFINED) {
+                auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
+                if (res_tuple == nullptr) return RC::MISS_TYPE;
+                rc =  res_tuple->modify_cell_spec_at(select_stmt->attr_num_ - a - 1, &select_stmt->function_value1_[a], modify, oold);
+              } 
+
+              else {
+
+                TupleCell cell;
+                rc = tuple->cell_at(select_stmt->attr_num_ - a - 1, cell);
+
+                Value *v = new Value;
+                v->data = malloc(30);
+                if (select_stmt->function_ops_[a] == LENGTH_OP) {
+                  // printf("1111111111111111111111111 \n", select_stmt->attr_num_);
+                  if (cell.attr_type() != CHARS) {
+                    printf("panic1 %d\n", cell.attr_type());
+                    return RC::MISS_TYPE;
+                  }
+                  v->type = INTS;
+                  *(int*)v->data = strlen((char*)cell.data_);
+                } else if (select_stmt->function_ops_[a] == ROUND_OP) {
+                  // printf("222222222222222222222222222\n");
+                  if (cell.attr_type() != FLOATS) {
+                    printf("panic2\n");
+                    return RC::MISS_TYPE;
+                  }
+                  v->type = FLOATS;
+                  *(float*)v->data = round(*(float*)cell.data_, *(int*)(select_stmt->function_value2_[a].data));
+                } else if (select_stmt->function_ops_[a] == DATE_FORMAT_OP) {
+                  // printf("33333333333333333333333333333333\n");
+                  if (cell.attr_type() != DATES) {
+                    printf("panic3\n");
+                    return RC::MISS_TYPE;
+                  }
+                  v->type = CHARS;
+                  v->data = date_format(*(int*)cell.data_, (char*)select_stmt->function_value2_[a].data);
+                } else {
+                  printf("panic4\n");
+                  return RC::MISS_TYPE;
+                }
+
+                auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
+                if (res_tuple == nullptr) return RC::MISS_TYPE;
+                rc = res_tuple->modify_cell_spec_at(select_stmt->attr_num_ - a - 1, v, modify, oold);
+              }
+
             }
+            auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
+            if (res_tuple == nullptr) return RC::MISS_TYPE;
+            std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
+            tuple_to_string(ss, *tuple);
+            std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
 
+            // auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
+            // if (res_tuple == nullptr) return RC::MISS_TYPE;
+
+            while (!modify.empty()) {
+              std::pair<int, TupleCellSpec *> pa = modify[modify.size() - 1];
+              modify.pop_back();
+              res_tuple->speces_[pa.first] = pa.second;
+            }
+            // res_tuple->speces_[0] = oold;
           }
-          auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
-          if (res_tuple == nullptr) return RC::MISS_TYPE;
-          std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
-          tuple_to_string(ss, *tuple);
-          std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
 
-          // auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
-          // if (res_tuple == nullptr) return RC::MISS_TYPE;
 
-          while (!modify.empty()) {
-            std::pair<int, TupleCellSpec *> pa = modify[modify.size() - 1];
-            modify.pop_back();
-            res_tuple->speces_[pa.first] = pa.second;
-          }
-          // res_tuple->speces_[0] = oold;
+
+          ss << std::endl;
         }
-        
-        // ************************************************func********************************************************
 
-        ss << std::endl;
+        if (rc != RC::RECORD_EOF) {
+          // something wrong happened when iterating the tuples
+          LOG_WARN("something wrong happened when iterating the tuples");
+          session_event->set_response("FAILURE\n");
+          return rc;
+        }
       }
-
-      if (rc != RC::RECORD_EOF) {
-        // something wrong happened when iterating the tuples
-        LOG_WARN("something wrong happened when iterating the tuples");
-        session_event->set_response("FAILURE\n");
-        return rc;
-      }
+      // ************************************************func********************************************************
+      
+      
     }
   }
 

@@ -79,6 +79,7 @@ private:
   Value function_value2_[MAX_NUM];
   size_t attr_num_;
   int isfunc_;
+  int isvaluefunc_;
   //*******************************************func****************************************************
 };
 

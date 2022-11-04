@@ -551,6 +551,19 @@ select_query:				/*  select 语句的语法解析树*/
 			CONTEXT->value_length = 0;
 			CONTEXT->tuple_num = 0;
 	}
+	| SELECT select_attr
+		{
+			CONTEXT->ssql->sstr.selection.isvaluefunc = 1;
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, NULL, NULL);
+			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+
+			//临时变量清零
+			CONTEXT->condition_length=0;
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+			CONTEXT->value_length = 0;
+			CONTEXT->tuple_num = 0;
+		}
 	;
 
 select_attr:

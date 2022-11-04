@@ -171,6 +171,7 @@ typedef struct Selects {
   Value function_value1[MAX_NUM];
   Value function_value2[MAX_NUM];
   int isfunc;
+  int isvaluefunc;
   //*****************************************************func*************************************************************
 
 } Selects;

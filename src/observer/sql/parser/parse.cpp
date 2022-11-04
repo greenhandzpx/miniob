@@ -252,11 +252,17 @@ void selects_append_relation(Selects *selects, const char *relation_name, const 
   // adjust the order
   // TODO optimize
   selects->relation_num++;
+
   for (int i = selects->relation_num - 1; i > 0; --i) {
     selects->relations[i] = selects->relations[i-1];
     selects->relation_alias[i] = selects->relation_alias[i-1];
   }
-  selects->relations[0] = strdup(relation_name);
+  if (relation_name != NULL) {
+    selects->relations[0] = strdup(relation_name);
+  } else {
+    selects->relations[0] = NULL;
+  }
+  
   if (relation_alias) {
     selects->relation_alias[0] = strdup(relation_alias);
   } else {
