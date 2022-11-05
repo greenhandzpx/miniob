@@ -566,6 +566,7 @@ select_query:				/*  select 语句的语法解析树*/
 		}
 	;
 
+
 select_attr:
     STAR attr_list {  
 			RelAttr attr;
@@ -584,23 +585,24 @@ select_attr:
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
     | ID as_option ID attr_list {
+		printf("                     %s\n", $3);
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			attr.alias_name = $3;
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
+	}
+
   	| ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
+	}
 	
 
 	| func_attr attr_list {
 		}
-	| func_attr as_option ID attr_list {
-			CONTEXT->ssql->sstr.selection.attributes[CONTEXT->ssql->sstr.selection.attr_num - 1].alias_name = $3;
-		}
+	
+	
 
 
   	| ID DOT ID as_option ID attr_list {
@@ -690,7 +692,62 @@ func_attr:
 
 		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, attr_name);
 		printf("func name %s\n", attr_name);
+	}
+
+	| LENGTH LBRACE function_field_attr RBRACE as_option ID {
+		selects_append_funcop(&CONTEXT->ssql->sstr.selection, LENGTH_OP);
+		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, 0);
+
+		//char* attr_name = (char*)malloc(strlen("length(") + strlen($3) + strlen(")") + 1);
+		//memset(attr_name, strlen("length(") + strlen($3) + strlen(")") + 1, 0);
+
+		//strcat(attr_name, "length(");
+		//strcat(attr_name, $3);
+		//strcat(attr_name, ")");
+		//strcat(attr_name, "\0");
+
+		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, $6);
+		//printf("func name %s\n", attr_name);
+	}
+	| ROUND LBRACE function_field_attr COMMA value RBRACE as_option ID {
+		selects_append_funcop(&CONTEXT->ssql->sstr.selection, ROUND_OP);
+		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, &CONTEXT->values[CONTEXT->value_length - 1]);
+		
+		//char * value_string = value2string(&CONTEXT->values[CONTEXT->value_length - 1]);
+		//char* attr_name = (char*)malloc(strlen("round(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1);
+		//memset(attr_name, strlen("round(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1, 0);
+
+		//strcat(attr_name, "round(");
+		//strcat(attr_name, $3);
+		//strcat(attr_name, ",");
+		//strcat(attr_name, "\0");
+		
+		//strcat(attr_name, value_string);
+		//strcat(attr_name, ")");
+
+		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, $8);
+		//printf("func name %s\n", attr_name);
+	}
+	| DATE_FORMAT LBRACE function_field_attr COMMA value RBRACE as_option ID {
+		selects_append_funcop(&CONTEXT->ssql->sstr.selection, DATE_FORMAT_OP);
+		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, &CONTEXT->values[CONTEXT->value_length - 1]);
+
+		//char * value_string = value2string(&CONTEXT->values[CONTEXT->value_length - 1]);
+		//char* attr_name = (char*)malloc(strlen("date_format(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1);
+		//memset(attr_name, strlen("date_format(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1, 0);
+		
+		//strcat(attr_name, "date_format(");
+		//strcat(attr_name, $3);
+		//strcat(attr_name, ",");
+		//strcat(attr_name, value_string);
+		//strcat(attr_name, ")");
+		//strcat(attr_name, "\0");
+
+		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, $8);
+		//printf("func name %s\n", attr_name);
 	};
+
+	
 
 function_field_attr:
 	value {
@@ -867,6 +924,7 @@ attr_list:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
       }
     | COMMA ID as_option ID attr_list {
+		printf("                     %s\n", $4);
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
 			attr.alias_name = $4;
@@ -877,9 +935,6 @@ attr_list:
 
 	| COMMA func_attr attr_list {
 		
-		}
-	| COMMA func_attr as_option ID attr_list {
-		CONTEXT->ssql->sstr.selection.attributes[CONTEXT->ssql->sstr.selection.attr_num - 1].alias_name = $4;
 		}
 
 
@@ -907,6 +962,8 @@ attr_list:
 
 	}
   	;
+
+
 
 rel_list:
     /* empty */
