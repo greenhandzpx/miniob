@@ -111,6 +111,13 @@ public:
   static RC create_filter_unit(Db *db, Table *default_table, std::unordered_map<std::string, Table *> *tables,
 			       const Condition &condition, FilterUnit *&filter_unit);
 
-private:
+// private:
   std::vector<FilterUnit *>  filter_units_; // 默认当前都是AND关系
+//*************************************************func***************************************************************
+  std::vector<Value>  left_arg_; 
+  std::vector<FunctionOp>  left_op; 
+  std::vector<Value>  right_arg_; 
+  std::vector<FunctionOp>  right_op; 
+  int hasfunc_;
+//*************************************************func***************************************************************
 };

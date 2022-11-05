@@ -74,6 +74,7 @@ public:
   }
 
   RC get_value(const Tuple &tuple, TupleCell &cell) const override;
+  
 private:
   Field field_;
 };
@@ -101,10 +102,9 @@ public:
     cell = tuple_cell_;
   }
 
-private:
+// private:
   TupleCell tuple_cell_;
 };
-
 
 class SubQueryExpr: public Expression
 {
@@ -125,7 +125,6 @@ private:
   SelectStmt *select_stmt_ = nullptr;
   // Tuple *parent_tuple_ = nullptr;
 };
-
 
 class ValueSetExpr: public Expression
 {

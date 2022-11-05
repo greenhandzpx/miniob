@@ -74,6 +74,11 @@ QUOTE            [\'\"]
 [Dd][Aa][Tt][Aa]                                     RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                             RETURN_TOKEN(INFILE);
 
+[Ll][Ee][Nn][Gg][Tt][Hh]                             RETURN_TOKEN(LENGTH);
+[Rr][Oo][Uu][Nn][Dd]                                 RETURN_TOKEN(ROUND);
+[Dd][Aa][Tt][Ee][_][Ff][Oo][Rr][Mm][Aa][Tt]           RETURN_TOKEN(DATE_FORMAT);
+
+
 [Dd][Aa][Tt][Ee]                      RETURN_TOKEN(DATE_T);  // 增加DATE的token，需要在yacc文件中增加DATE_T的token
 [Tt][Ee][Xx][Tt]                      RETURN_TOKEN(TEXT_T);  // 增考TEXT的token
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]      RETURN_TOKEN(NULLABLE); // NULLABLE
@@ -102,6 +107,8 @@ QUOTE            [\'\"]
 [Oo][Rr]                                             RETURN_TOKEN(OR);
 
 [Aa][Ss]                                             RETURN_TOKEN(AS);
+
+
 
 
 "("                                                  RETURN_TOKEN(LBRACE);

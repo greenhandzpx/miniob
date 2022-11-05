@@ -19,6 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "sql/parser/parse_defs.h"
 
+
+
 RC parse(char *st, Query *sqln);
 
 #ifdef __cplusplus
@@ -131,6 +133,110 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
     condition->right_value = *right_value;
   }
 }
+
+//*******************************************************func***************************************************************
+
+void condition_init_func(Condition *condition, FilterType condition_type, CompOp comp, 
+
+    int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, Selects *left_select, 
+    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, 
+    Value *value_set, size_t value_set_num, 
+    FuncAttrCon* left_func_attr, FuncAttrCon* right_func_attr)
+
+{
+  condition->condition_type = condition_type;
+  condition->comp = comp;
+  if (left_func_attr != NULL && right_func_attr != NULL) {
+    
+    condition->left_is_attr = left_func_attr->value.type == UNDEFINED;
+    condition->left_is_sub_query = 0;
+    condition->right_is_attr = right_func_attr->value.type == UNDEFINED;
+    condition->right_is_sub_query = 0;
+    condition->right_is_set = 0;
+    condition->is_and = 1;
+
+    condition->left_args_value = left_func_attr->args_value;
+    condition->left_funcop = left_func_attr->funcop;
+
+    if (condition->left_is_attr) {
+      condition->left_attr = *left_func_attr->attr;
+    } else {
+      condition->left_value = left_func_attr->value;
+    }
+  
+
+    condition->right_args_value = right_func_attr->args_value;
+    condition->right_funcop = right_func_attr->funcop;
+
+    if (condition->right_is_attr) {
+      condition->right_attr = *right_func_attr->attr;
+    } else {
+      condition->right_value = right_func_attr->value;
+    }
+
+  } else if (left_func_attr != NULL && right_func_attr == NULL) {
+
+    condition->left_is_attr = left_func_attr->value.type == UNDEFINED;
+    condition->left_is_sub_query = 0;
+    condition->right_is_attr = right_is_attr;
+    condition->right_is_sub_query = right_is_sub_query;
+    condition->right_is_set = right_is_set;
+    condition->is_and = 1;
+    
+    condition->left_args_value = left_func_attr->args_value;
+    condition->left_funcop = left_func_attr->funcop;
+
+    if (condition->left_is_attr) {
+      condition->left_attr = *left_func_attr->attr;
+    } else {
+      condition->left_value = left_func_attr->value;
+    }
+
+    if (right_is_attr) {
+      condition->right_attr = *right_attr;
+    } else if (right_is_sub_query) {
+      condition->right_select = right_select;
+    } else if (right_is_set) {
+      condition->right_value_set_num = value_set_num;
+      for (int i = 0; i < value_set_num; ++i) {
+        condition->right_value_set[i] = value_set[i];
+      }
+    } else {
+      condition->right_value = *right_value;
+    }
+
+  } else if (left_func_attr == NULL && right_func_attr != NULL) {
+
+    condition->left_is_attr = left_is_attr;
+    condition->left_is_sub_query = left_is_sub_query;
+    condition->right_is_attr = right_func_attr->value.type == UNDEFINED;
+    condition->right_is_sub_query = 0;
+    condition->right_is_set = 0;
+    condition->is_and = 1;
+    
+    if (left_is_attr) {
+      condition->left_attr = *left_attr;
+    } else if (left_is_sub_query) {
+      condition->left_select = left_select;
+    } else {
+      condition->left_value = *left_value;
+    }
+
+    condition->right_args_value = right_func_attr->args_value;
+    condition->right_funcop = right_func_attr->funcop;
+    
+    if (condition->right_is_attr) {
+      condition->right_attr = *right_func_attr->attr;
+    } else {
+      condition->right_value = right_func_attr->value;
+    }
+
+  } else {
+    printf("panic!!!!!!!! in condition_init_func\n");
+  }
+}
+
+//*******************************************************func***************************************************************
 void condition_destroy(Condition *condition)
 {
   if (condition->condition_type != Exists &&
@@ -186,9 +292,60 @@ void attr_info_destroy(AttrInfo *attr_info)
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
+  //******************************************func******************************************************
+  selects->function_ops[selects->attr_num] = NO_FUNCTION_OP;
+  selects->function_value1[selects->attr_num].type = UNDEFINED;
+  selects->function_value2[selects->attr_num].type = UNDEFINED;
+  //******************************************func******************************************************
   selects->attributes[selects->attr_num++] = *rel_attr;
   printf("attr_num = %d\n", selects->attr_num);
 }
+
+//**********************************************************func******************************************************************
+void selects_append_funcop(Selects *selects, FunctionOp function_op)
+{
+  selects->function_ops[selects->attr_num - 1] = function_op;
+  selects->isfunc = 1;
+}
+
+void selects_append_funcvalue1(Selects *selects, Value * value)
+{
+  
+  if (value == 0) selects->function_value1[selects->attr_num - 1].type = UNDEFINED;
+  else selects->function_value1[selects->attr_num - 1] = *value;
+}
+
+void selects_append_funcvalue2(Selects *selects, Value * value)
+{
+  if (value == 0) selects->function_value2[selects->attr_num - 1].type = UNDEFINED;
+  else selects->function_value2[selects->attr_num - 1] = *value;
+}
+
+void selects_modify_alias_name(Selects *selects, char *attr_name) {
+  selects->attributes[selects->attr_num - 1].alias_name = attr_name;
+}
+
+char* value2string(Value * value) {
+  char* res = (char*)malloc(30);
+  memset((void*)res, 30, 0);
+
+  if (value->type == INTS) {
+    sprintf(res, "%d", *(int*)value->data);
+  } else if (value->type = CHARS) {
+    strcpy(res, "\'");
+    // strcat(res, "\'");
+    strcat(res, (char*)value->data);
+    strcat(res, "\'");
+  } else if (value->type = FLOATS) {
+    sprintf(res, "%f", *(float*)value->data);
+  } else {
+    printf("do not support %d to char* in value2string, panic\n", value->type);
+    while(1);
+  }
+ 
+  return res;
+}
+//**********************************************************func******************************************************************
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op)
 {
   selects->aggrops_idx_in_fields[selects->aggregation_num] = selects->aggregation_num + selects->attr_num;
@@ -201,11 +358,17 @@ void selects_append_relation(Selects *selects, const char *relation_name, const 
   // adjust the order
   // TODO optimize
   selects->relation_num++;
+
   for (int i = selects->relation_num - 1; i > 0; --i) {
     selects->relations[i] = selects->relations[i-1];
     selects->relation_alias[i] = selects->relation_alias[i-1];
   }
-  selects->relations[0] = strdup(relation_name);
+  if (relation_name != NULL) {
+    selects->relations[0] = strdup(relation_name);
+  } else {
+    selects->relations[0] = NULL;
+  }
+  
   if (relation_alias) {
     selects->relation_alias[0] = strdup(relation_alias);
   } else {

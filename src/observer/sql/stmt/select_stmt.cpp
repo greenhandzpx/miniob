@@ -22,6 +22,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/table.h"
 #include <unordered_set>
 
+#include "util/util.h"
+
 SelectStmt::~SelectStmt()
 {
   if (nullptr != filter_stmt_) {
@@ -39,9 +41,10 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables)
+RC SelectStmt::create(Db *db, Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables)
 // RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 {
+
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
@@ -79,9 +82,11 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   }
   
   std::unordered_set<std::string> alias_set_in_this_level;
+  // add string2table for alias
   for (size_t i = 0; i < select_sql.relation_num; i++) {
     const char *table_name = select_sql.relations[i];
     if (nullptr == table_name) {
+      break;
       LOG_WARN("invalid argument. relation name is null. index=%d", i);
       return RC::INVALID_ARGUMENT;
     }
@@ -108,10 +113,50 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
+  int pvt = -1;
   for (int i = select_sql.attr_num - 1; i >= 0; i--) {
+    
     const RelAttr &relation_attr = select_sql.attributes[i];
 
-    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+    //*******************************************************func*********************************************************
+    if (select_sql.function_ops[i] != NO_FUNCTION_OP && pvt == -1) {
+      pvt = i;
+    } else if (select_sql.function_ops[i] == NO_FUNCTION_OP && pvt != -1) {
+      for (int left = i - 1, right = pvt; left < right; left++, right--) {
+        Field tmp1 = query_fields[select_sql.attr_num - 1 - left];
+        query_fields[select_sql.attr_num - 1 - left] = query_fields[select_sql.attr_num - 1 - right];
+        query_fields[select_sql.attr_num - 1 - right] = tmp1;
+
+        FunctionOp tmp2 = select_sql.function_ops[left];
+        select_sql.function_ops[left] = select_sql.function_ops[right];
+        select_sql.function_ops[right] = tmp2;
+
+        Value tmp3 = select_sql.function_value1[left];
+        select_sql.function_value1[left] = select_sql.function_value1[right];
+        select_sql.function_value1[right] = tmp3;
+
+        Value tmp4 = select_sql.function_value2[left];
+        select_sql.function_value2[left] = select_sql.function_value2[right];
+        select_sql.function_value2[right] = tmp4;
+      }
+      pvt == -1;
+    }
+
+    
+    if (select_sql.function_ops[i] != NO_FUNCTION_OP && select_sql.function_value1[i].type != UNDEFINED) {
+      FieldMeta *f = new FieldMeta;
+      if (f->init("const", select_sql.function_value1[i].type, -1, -1, true, false) != RC::SUCCESS) {
+        return RC::MISS_TYPE;
+      }
+      f->set_alias(relation_attr.alias_name);
+      query_fields.push_back(Field(nullptr, f));
+    }
+
+
+    //*******************************************************func*********************************************************
+
+
+    else if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
 
       // select * from t1, t2
 
@@ -205,6 +250,29 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     }
   }
 
+
+  //*************************************************func****************************************************
+  if (pvt != -1) {
+      for (int left = 0, right = pvt; left < right; left++, right--) {
+        printf("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii  %d  %d  %d  %d\n", left, right, select_sql.function_ops[left], select_sql.function_ops[right]);
+        Field tmp1 = query_fields[select_sql.attr_num - 1 - left];
+        query_fields[select_sql.attr_num - 1 - left] = query_fields[select_sql.attr_num - 1 - right];
+        query_fields[select_sql.attr_num - 1 - right] = tmp1;
+
+        FunctionOp tmp2 = select_sql.function_ops[left];
+        select_sql.function_ops[left] = select_sql.function_ops[right];
+        select_sql.function_ops[right] = tmp2;
+
+        Value tmp3 = select_sql.function_value1[left];
+        select_sql.function_value1[left] = select_sql.function_value1[right];
+        select_sql.function_value1[right] = tmp3;
+
+        Value tmp4 = select_sql.function_value2[left];
+        select_sql.function_value2[left] = select_sql.function_value2[right];
+        select_sql.function_value2[right] = tmp4;
+      }
+    }
+  //*************************************************func****************************************************
   // collect order fields in `order` statement
   std::vector<std::pair<Field, bool>> order_fields;
   if (order) {
@@ -429,13 +497,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     return rc;
   }
 
-    // if (aggregation_ops[i] == AVG_OP || aggregation_ops[i] == SUM_OP) {
-    //   if (query_fields[n-i-1].attr_type() == AttrType::CHARS ||);
-    //       query_fields[n-i-1].attr_type() == AttrType::DATES) {
-    //     return RC::GENERIC_ERROR;
-    //   } 
-    // }
-  
+    
   size_t n = select_sql.aggregation_num;
   std::vector<AggregationOp> aggregation_ops(n);
   std::vector<size_t> aggrops_idx_in_fields(n);
@@ -544,6 +606,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   select_stmt->aggr_fields_.swap(aggr_fields);
   select_stmt->having_fields_.swap(having_fields);
   select_stmt->having_ops_.swap(having_ops);
+  select_stmt->isfunc_ = select_sql.isfunc;
+  select_stmt->isvaluefunc_ = select_sql.isvaluefunc;
+  
   if (order) {
     select_stmt->order_fields_.swap(order_fields);
   }
@@ -553,6 +618,51 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   }
   select_stmt->having_ = having;
   select_stmt->having_filters_ = having_filters;
+
+  //**********************************************************func***********************************************************
+  select_stmt->attr_num_ = select_sql.attr_num;
+
+  for (int a = 0; a < select_sql.attr_num; a++) {
+    select_stmt->function_ops_[a] = select_sql.function_ops[a];
+    select_stmt->function_value1_[a] = select_sql.function_value1[a];
+    select_stmt->function_value2_[a] = select_sql.function_value2[a];
+
+    if (select_stmt->function_ops_[a] != NO_FUNCTION_OP && select_stmt->function_value1_[a].type != UNDEFINED) {
+      Value& v = select_stmt->function_value1_[a];
+      if (select_stmt->function_ops_[a] == LENGTH_OP) {
+        if (v.type != CHARS) {
+          printf("error in create selectstmt1\n");
+          return RC::MISS_TYPE;
+        }
+        v.type = INTS;
+        *(int*)v.data = strlen((char*)v.data);
+      } else if (select_stmt->function_ops_[a] == ROUND_OP) {
+        if (v.type != FLOATS && v.type != UNDEFINED) {
+          printf("error in create selectstmt2\n");
+          return RC::MISS_TYPE;
+        }
+        v.type = FLOATS;
+        if (select_stmt->function_value2_[a].type == INTS) {
+          *(float*)v.data = round(*(float*)v.data, *(int*)(select_stmt->function_value2_[a].data));
+        } else {
+          *(float*)v.data = round1(*(float*)v.data);
+        }
+        
+      } else if (select_stmt->function_ops_[a] == DATE_FORMAT_OP) {
+        if (v.type != DATES) {
+          printf("error in create selectstmt3\n");
+          return RC::MISS_TYPE;
+        }
+        v.type = CHARS;
+        v.data = date_format(*(int*)v.data, (char*)select_stmt->function_value2_[a].data);
+      } else {
+        printf("error in create selectstmt4\n");
+        return RC::MISS_TYPE;
+      }
+    }
+  }
+  //**********************************************************func***********************************************************
+  
   stmt = select_stmt;
   return RC::SUCCESS;
 }

@@ -24,7 +24,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_DATA 50
 
 //属性结构体
-typedef struct {
+typedef struct RelAttr{
   char *relation_name;   // relation name (may be NULL) 表名
   char *attribute_name;  // attribute name              属性名
   char *alias_name;      // 属性的别名
@@ -65,6 +65,15 @@ typedef enum {
   SUM_OP,
 } AggregationOp;
 
+//************************************************************func********************************************************************
+typedef enum {
+  NO_FUNCTION_OP,
+  LENGTH_OP,
+  ROUND_OP,
+  DATE_FORMAT_OP,
+} FunctionOp;
+//************************************************************func********************************************************************
+
 //属性值类型
 typedef enum
 {
@@ -85,6 +94,15 @@ typedef struct _Value {
 
 struct Selects;
 
+//***********************************************************func****************************************************************
+typedef struct FuncAttrCon {
+  RelAttr* attr;
+  Value value;
+  FunctionOp funcop;
+  Value args_value;
+} FuncAttrCon;
+//***********************************************************func****************************************************************
+
 typedef struct _Condition {
   int left_is_sub_query;
   int left_is_attr;    // TRUE if left-hand side is an attribute
@@ -93,6 +111,11 @@ typedef struct _Condition {
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
   struct Selects *left_select; // right-hand side sub query(i.e. select query)
+
+  //*****************************************************func*************************************************************
+  FunctionOp left_funcop;
+  Value left_args_value;
+  //*****************************************************func*************************************************************
 
   // int is_comp;         // is comparison condition
   // int is_in;           // is in condition
@@ -109,6 +132,13 @@ typedef struct _Condition {
   Value right_value_set[MAX_NUM];
   size_t right_value_set_num;
   Value right_value;   // right-hand side value if right_is_attr = FALSE
+
+  //*****************************************************func*************************************************************
+  FunctionOp right_funcop;
+  Value right_args_value;
+
+  int isfunc;
+  //*****************************************************func*************************************************************
 
   int is_and;  // TRUE if: conditino1 and condition2 (condition2 refers to this condition)
 } Condition;
@@ -156,6 +186,16 @@ typedef struct Selects {
   size_t having_condition_num;
   Having_Condition having_conditions[MAX_NUM];
   int is_having; 
+
+  //*****************************************************func*************************************************************
+  FunctionOp function_ops[MAX_NUM];
+  Value function_value1[MAX_NUM];
+  Value function_value2[MAX_NUM];
+  int isfunc;
+  int isvaluefunc;
+
+  //*****************************************************func*************************************************************
+
 } Selects;
 
 // struct of insert
@@ -303,6 +343,12 @@ void value_destroy(Value *value);
 void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, 
     Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
     size_t value_set_num);
+
+//***********************************************************func****************************************************************
+void condition_init_func(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, 
+    Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+    size_t value_set_num, FuncAttrCon* left_func_attr, FuncAttrCon* right_func_attr);
+//***********************************************************func****************************************************************
 void condition_destroy(Condition *condition);
 
 void having_condition_init(Having_Condition *condition, AggregationOp aggr, CompOp cmpop, Value *value, RelAttr *attr);
@@ -317,6 +363,17 @@ void selects_append_relation(Selects *selects, const char *relation_name, const 
 void selects_append_aggregation_op(Selects *selects, AggregationOp aggregation_op);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
 void selects_append_aggrattr(Selects *selects, RelAttr *rel_attr);
+//******************************************func******************************************************
+void selects_append_funcop(Selects *selects, FunctionOp function_op);
+// first args
+void selects_append_funcvalue1(Selects *selects, Value * value);
+// second args
+void selects_append_funcvalue2(Selects *selects, Value * value);
+
+void selects_modify_alias_name(Selects *selects, char *attr_name);
+
+char* value2string(Value * value);
+//******************************************func******************************************************
 void selects_append_orderattr(Selects *selects, RelAttr *rel_attr, int is_asc);
 void selects_append_groupattr(Selects *selects, RelAttr *rel_attr);
 void selects_append_havingcondition(Selects *selects, Having_Condition *condition); 
