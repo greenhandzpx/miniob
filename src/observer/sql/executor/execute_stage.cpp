@@ -1443,11 +1443,11 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   } else {
     
     // normal select 
-    if (select_stmt->isvaluefunc_ == 0) {
+    // if (select_stmt->isvaluefunc_ == 0) {
         print_tuple_header(ss, project_oper);
-    } else {
-        res_print_tuple_header(ss, project_oper);
-    }
+    // } else {
+    //     res_print_tuple_header(ss, project_oper);
+    // }
     // print_tuple_header(ss, project_oper);
     // order by
     Tuple *tuple;

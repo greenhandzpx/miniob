@@ -36,7 +36,7 @@ public:
   StmtType type() const override { return StmtType::SELECT; }
 public:
   // static RC create(Db *db, const Selects &select_sql, Stmt *&stmt);
-  static RC create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables);
+  static RC create(Db *db, Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables);
 
 public:
   const std::vector<Table *> &tables() const { return tables_; }

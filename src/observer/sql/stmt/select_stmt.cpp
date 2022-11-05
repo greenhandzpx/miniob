@@ -41,7 +41,7 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables)
+RC SelectStmt::create(Db *db, Selects &select_sql, Stmt *&stmt, std::vector<std::pair<std::string, Table*>> *parent_tables)
 // RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 {
 
@@ -113,11 +113,36 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
   
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
+  int pvt = -1;
   for (int i = select_sql.attr_num - 1; i >= 0; i--) {
     
     const RelAttr &relation_attr = select_sql.attributes[i];
 
     //*******************************************************func*********************************************************
+    if (select_sql.function_ops[i] != NO_FUNCTION_OP && pvt == -1) {
+      pvt = i;
+    } else if (select_sql.function_ops[i] == NO_FUNCTION_OP && pvt != -1) {
+      for (int left = i - 1, right = pvt; left < right; left++, right--) {
+        Field tmp1 = query_fields[select_sql.attr_num - 1 - left];
+        query_fields[select_sql.attr_num - 1 - left] = query_fields[select_sql.attr_num - 1 - right];
+        query_fields[select_sql.attr_num - 1 - right] = tmp1;
+
+        FunctionOp tmp2 = select_sql.function_ops[left];
+        select_sql.function_ops[left] = select_sql.function_ops[right];
+        select_sql.function_ops[right] = tmp2;
+
+        Value tmp3 = select_sql.function_value1[left];
+        select_sql.function_value1[left] = select_sql.function_value1[right];
+        select_sql.function_value1[right] = tmp3;
+
+        Value tmp4 = select_sql.function_value2[left];
+        select_sql.function_value2[left] = select_sql.function_value2[right];
+        select_sql.function_value2[right] = tmp4;
+      }
+      pvt == -1;
+    }
+
+    
     if (select_sql.function_ops[i] != NO_FUNCTION_OP && select_sql.function_value1[i].type != UNDEFINED) {
       FieldMeta *f = new FieldMeta;
       if (f->init("const", select_sql.function_value1[i].type, -1, -1, true, false) != RC::SUCCESS) {
@@ -125,8 +150,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
       }
       f->set_alias(relation_attr.alias_name);
       query_fields.push_back(Field(nullptr, f));
-      
     }
+
+
     //*******************************************************func*********************************************************
 
 
@@ -224,6 +250,29 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
     }
   }
 
+
+  //*************************************************func****************************************************
+  if (pvt != -1) {
+      for (int left = 0, right = pvt; left < right; left++, right--) {
+        printf("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii  %d  %d  %d  %d\n", left, right, select_sql.function_ops[left], select_sql.function_ops[right]);
+        Field tmp1 = query_fields[select_sql.attr_num - 1 - left];
+        query_fields[select_sql.attr_num - 1 - left] = query_fields[select_sql.attr_num - 1 - right];
+        query_fields[select_sql.attr_num - 1 - right] = tmp1;
+
+        FunctionOp tmp2 = select_sql.function_ops[left];
+        select_sql.function_ops[left] = select_sql.function_ops[right];
+        select_sql.function_ops[right] = tmp2;
+
+        Value tmp3 = select_sql.function_value1[left];
+        select_sql.function_value1[left] = select_sql.function_value1[right];
+        select_sql.function_value1[right] = tmp3;
+
+        Value tmp4 = select_sql.function_value2[left];
+        select_sql.function_value2[left] = select_sql.function_value2[right];
+        select_sql.function_value2[right] = tmp4;
+      }
+    }
+  //*************************************************func****************************************************
   // collect order fields in `order` statement
   std::vector<std::pair<Field, bool>> order_fields;
   if (order) {
