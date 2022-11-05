@@ -588,12 +588,17 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt, std::vecto
         v.type = INTS;
         *(int*)v.data = strlen((char*)v.data);
       } else if (select_stmt->function_ops_[a] == ROUND_OP) {
-        if (v.type != FLOATS) {
+        if (v.type != FLOATS && v.type != UNDEFINED) {
           printf("error in create selectstmt2\n");
           return RC::MISS_TYPE;
         }
         v.type = FLOATS;
-        *(float*)v.data = round(*(float*)v.data, *(int*)(select_stmt->function_value2_[a].data));
+        if (select_stmt->function_value2_[a].type == INTS) {
+          *(float*)v.data = round(*(float*)v.data, *(int*)(select_stmt->function_value2_[a].data));
+        } else {
+          *(float*)v.data = round1(*(float*)v.data);
+        }
+        
       } else if (select_stmt->function_ops_[a] == DATE_FORMAT_OP) {
         if (v.type != DATES) {
           printf("error in create selectstmt3\n");

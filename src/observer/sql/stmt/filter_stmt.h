@@ -118,5 +118,6 @@ public:
   std::vector<FunctionOp>  left_op; 
   std::vector<Value>  right_arg_; 
   std::vector<FunctionOp>  right_op; 
+  int hasfunc_;
 //*************************************************func***************************************************************
 };

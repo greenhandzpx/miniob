@@ -29,6 +29,7 @@ bool is_like(std::string s1, std::string s2);
 
 // ********************************func*****************************************
 float round(float f, int num);
+float round1(float f);
 char* date_format(int date, char* format);
 // ********************************func*****************************************
 

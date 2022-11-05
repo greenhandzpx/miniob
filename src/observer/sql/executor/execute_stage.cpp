@@ -1538,12 +1538,17 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
                   *(int*)v->data = strlen((char*)cell.data_);
                 } else if (select_stmt->function_ops_[a] == ROUND_OP) {
                   // printf("222222222222222222222222222\n");
-                  if (cell.attr_type() != FLOATS) {
+                  if (cell.attr_type() != FLOATS || select_stmt->function_value2_[a].type != INTS && select_stmt->function_value2_[a].type != UNDEFINED) {
                     printf("panic2\n");
                     return RC::MISS_TYPE;
                   }
                   v->type = FLOATS;
-                  *(float*)v->data = round(*(float*)cell.data_, *(int*)(select_stmt->function_value2_[a].data));
+                  if (select_stmt->function_value2_[a].type == INTS) {
+                    *(float*)v->data = round(*(float*)cell.data_, *(int*)(select_stmt->function_value2_[a].data));
+                  } else {
+                    *(float*)v->data = round1(*(float*)cell.data_);
+                  }
+                  
                 } else if (select_stmt->function_ops_[a] == DATE_FORMAT_OP) {
                   // printf("33333333333333333333333333333333\n");
                   if (cell.attr_type() != DATES) {

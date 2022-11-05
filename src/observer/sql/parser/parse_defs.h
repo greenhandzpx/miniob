@@ -136,6 +136,8 @@ typedef struct _Condition {
   //*****************************************************func*************************************************************
   FunctionOp right_funcop;
   Value right_args_value;
+
+  int isfunc;
   //*****************************************************func*************************************************************
 
   int is_and;  // TRUE if: conditino1 and condition2 (condition2 refers to this condition)

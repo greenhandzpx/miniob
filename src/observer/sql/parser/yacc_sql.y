@@ -681,6 +681,21 @@ func_attr:
 		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, attr_name);
 		printf("func name %s\n", attr_name);
 	}
+	| ROUND LBRACE function_field_attr RBRACE {
+		selects_append_funcop(&CONTEXT->ssql->sstr.selection, ROUND_OP);
+		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, 0);
+		char* attr_name = (char*)malloc(strlen("round(") + strlen($3) + strlen(")") + 1);
+		memset(attr_name, strlen("round(") + strlen($3) + strlen(")") + 1, 0);
+
+		//strcat(attr_name, "round(");
+		strcpy(attr_name, "round(");
+		strcat(attr_name, $3);
+		strcat(attr_name, ")");
+		strcat(attr_name, "\0");
+
+		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, attr_name);
+		printf("func name %s\n", attr_name);
+	}
 	| DATE_FORMAT LBRACE function_field_attr COMMA value RBRACE {
 		selects_append_funcop(&CONTEXT->ssql->sstr.selection, DATE_FORMAT_OP);
 		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, &CONTEXT->values[CONTEXT->value_length - 1]);
@@ -733,6 +748,13 @@ func_attr:
 		//strcat(attr_name, ")");
 
 		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, $8);
+		//printf("func name %s\n", attr_name);
+	}
+	| ROUND LBRACE function_field_attr RBRACE as_option ID {
+		selects_append_funcop(&CONTEXT->ssql->sstr.selection, ROUND_OP);
+		selects_append_funcvalue2(&CONTEXT->ssql->sstr.selection, 0);
+
+		selects_modify_alias_name(&CONTEXT->ssql->sstr.selection, $6);
 		//printf("func name %s\n", attr_name);
 	}
 	| DATE_FORMAT LBRACE function_field_attr COMMA value RBRACE as_option ID {
@@ -1037,6 +1059,19 @@ funcCp:
 		$$ = ff;
 		
 	}
+	| ROUND LBRACE funcCp_field_attr RBRACE {
+		FuncAttrCon* ff = (FuncAttrCon*)malloc(sizeof(FuncAttrCon));
+		ff->funcop = ROUND_OP;
+		ff->args_value.type = 0;
+		ff->attr = $3;
+		if ($3 == NULL) {
+			ff->value = CONTEXT->values[CONTEXT->value_length - 1];
+		} else {
+			ff->value.type = UNDEFINED;
+		}
+		$$ = ff;
+		
+	}
 	| ROUND LBRACE funcCp_field_attr COMMA value RBRACE {
 		FuncAttrCon* ff = (FuncAttrCon*)malloc(sizeof(FuncAttrCon));
 		ff->funcop = ROUND_OP;
@@ -1147,6 +1182,7 @@ condition:
 							1, 0, &left_attr, NULL, NULL,   
 		                    0, 0, 0, NULL, NULL, NULL, NULL, 0,  
 						    NULL, right_func_attr);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("a\n");
 	}
@@ -1161,6 +1197,7 @@ condition:
 							1, 0, &left_attr, NULL, NULL,  
 							0, 0, 0, NULL, NULL, NULL, NULL, 0,  
 							NULL, right_func_attr);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("b\n");
 	}
@@ -1175,6 +1212,7 @@ condition:
 							0, 0, NULL, left_value, NULL, 
 							1, 0, 0, NULL, NULL, NULL, NULL, 0,  
 							NULL, right_func_attr);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("c\n");
 	}
@@ -1188,6 +1226,7 @@ condition:
 		condition_init_func(&condition, Comparison, CONTEXT->comp, 1, 0, NULL, NULL, NULL, 
 							1, 0, 0, &right_attr, NULL, NULL, NULL, 0,  
 							left_func_attr, NULL);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("d\n");
 	}
@@ -1201,6 +1240,7 @@ condition:
 		condition_init_func(&condition, Comparison, CONTEXT->comp, 1, 0, NULL, NULL, NULL, 
 							1, 0, 0, &right_attr, NULL, NULL, NULL, 0,  
 							left_func_attr, NULL);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("e\n");
 	}
@@ -1214,6 +1254,7 @@ condition:
 		condition_init_func(&condition, Comparison, CONTEXT->comp, 1, 0, NULL, NULL, NULL, 
 							0, 0, 0, NULL, right_value, NULL, NULL, 0,
 							left_func_attr, NULL);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("f\n");
 	}
@@ -1225,6 +1266,7 @@ condition:
 		condition_init_func(&condition, Comparison, CONTEXT->comp, 1, 0, NULL, NULL, NULL, 
 							1, 0, 0, NULL, NULL, NULL, NULL, 0,   
 							left_func_attr, right_func_attr);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("g\n");
 	}
@@ -1236,6 +1278,7 @@ condition:
 							1, 0, NULL, NULL, NULL, 
 							0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0,
 							left_func_attr, NULL);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("h\n");
 	}
@@ -1247,6 +1290,7 @@ condition:
 							1, 0, NULL, NULL, NULL, 
 							0, 1, 0, NULL, NULL, &CONTEXT->sub_query->sstr.selection, NULL, 0,
 							left_func_attr, NULL);
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("i\n");
 	}
@@ -1259,6 +1303,7 @@ condition:
 							0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, CONTEXT->values, CONTEXT->value_length,
 							left_func_attr, NULL);
 		CONTEXT->value_length = 0;
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("j\n");
 	}
@@ -1271,6 +1316,7 @@ condition:
 							0, 0, 1, NULL, NULL, &CONTEXT->sub_query->sstr.selection, CONTEXT->values, CONTEXT->value_length,
 							left_func_attr, NULL);
 		CONTEXT->value_length = 0;
+		condition.isfunc = 1;
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		printf("k\n");
 	}

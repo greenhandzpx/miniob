@@ -56,6 +56,8 @@ RC FilterStmt::create(Db *db, Table *default_table, std::unordered_map<std::stri
     tmp_stmt->left_op.push_back(conditions[i].left_funcop);
     tmp_stmt->right_arg_.push_back(conditions[i].right_args_value);
     tmp_stmt->right_op.push_back(conditions[i].right_funcop);
+
+    if (conditions[i].isfunc == 1) tmp_stmt->hasfunc_ = 1;
   }
 //**************************************************func******************************************************
   stmt = tmp_stmt;

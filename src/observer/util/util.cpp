@@ -274,9 +274,20 @@ float round(float f, int num)
    int d = 1;
    for (; num != 0; num--) d *= 10;
    int i = f * d;
+   float ii = f * d;
+   if (ii - i >= 0.5) i += 1;
    f = (float)i;
-   // printf("fffffffffffffffff  %f\n", f / d);
    return f / d;
+}
+
+float round1(float f)
+{
+   float ff = (float)((int)f);
+   if (f - ff >= 0.5) {
+      return ff + 1;
+   } else {
+      return ff;
+   }
 }
 
 char* date_format(int date, char* format) 
