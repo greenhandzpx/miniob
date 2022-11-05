@@ -371,7 +371,7 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
 void value_to_string(std::ostream &os, Value *values, int length)
 {
   bool first_field = true;
-  for (int i = 0; i < length; i++) {
+  for (int i = length - 1; i >= 0; i--) {
     Value v = values[i];
 
     if (!first_field) {
