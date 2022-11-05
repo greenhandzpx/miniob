@@ -223,11 +223,13 @@ void selects_modify_alias_name(Selects *selects, char *attr_name) {
 
 char* value2string(Value * value) {
   char* res = (char*)malloc(30);
+  memset((void*)res, 30, 0);
 
   if (value->type == INTS) {
     sprintf(res, "%d", *(int*)value->data);
   } else if (value->type = CHARS) {
-    strcat(res, "\'");
+    strcpy(res, "\'");
+    // strcat(res, "\'");
     strcat(res, (char*)value->data);
     strcat(res, "\'");
   } else if (value->type = FLOATS) {

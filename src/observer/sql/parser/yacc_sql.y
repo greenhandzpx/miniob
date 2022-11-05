@@ -647,7 +647,8 @@ func_attr:
 		char* attr_name = (char*)malloc(strlen("length(") + strlen($3) + strlen(")") + 1);
 		memset(attr_name, strlen("length(") + strlen($3) + strlen(")") + 1, 0);
 
-		strcat(attr_name, "length(");
+		//strcat(attr_name, "length(");
+		strcpy(attr_name, "length(");
 		strcat(attr_name, $3);
 		strcat(attr_name, ")");
 		strcat(attr_name, "\0");
@@ -664,7 +665,8 @@ func_attr:
 		char* attr_name = (char*)malloc(strlen("round(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1);
 		memset(attr_name, strlen("round(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1, 0);
 
-		strcat(attr_name, "round(");
+		//strcat(attr_name, "round(");
+		strcpy(attr_name, "round(");
 		strcat(attr_name, $3);
 		strcat(attr_name, ",");
 		strcat(attr_name, "\0");
@@ -683,7 +685,8 @@ func_attr:
 		char* attr_name = (char*)malloc(strlen("date_format(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1);
 		memset(attr_name, strlen("date_format(") + strlen($3) + strlen(",") + strlen(value_string) + strlen(")") + 1, 0);
 		
-		strcat(attr_name, "date_format(");
+		//strcat(attr_name, "date_format(");
+		strcpy(attr_name, "date_format(");
 		strcat(attr_name, $3);
 		strcat(attr_name, ",");
 		strcat(attr_name, value_string);
