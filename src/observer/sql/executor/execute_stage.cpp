@@ -243,6 +243,7 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
     }
   }
 }
+
 void print_aggregation_header(std::ostream &os, SelectStmt *select_stmt) {
   auto query_field = select_stmt->query_fields();
   auto aggregation_ops = select_stmt->aggregation_ops();
@@ -325,6 +326,7 @@ void res_print_tuple_header(std::ostream &os, const ProjectOperator &oper)
     os << '\n';
   }
 }
+
 void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 {
   const int cell_num = oper.tuple_cell_num();
@@ -344,6 +346,7 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
     os << '\n';
   }
 }
+
 void tuple_to_string(std::ostream &os, const Tuple &tuple)
 {
   TupleCell cell;
@@ -557,7 +560,6 @@ IndexScanOperator *ExecuteStage::try_to_create_index_scan_operator(FilterStmt *f
   return oper;
 }
 
-
 RC ExecuteStage::normal_select_handler(SelectStmt *select_stmt, Tuple *&tuple, ProjectOperator &project_oper) {
 
   RC rc;
@@ -579,7 +581,6 @@ RC ExecuteStage::normal_select_handler(SelectStmt *select_stmt, Tuple *&tuple, P
   }
   return rc;
 }
-
 
 RC ExecuteStage::aggregation_select_handler(SelectStmt *select_stmt, std::vector<Value> &values, ProjectOperator &project_oper) {
 
@@ -1442,9 +1443,10 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   } else {
     
     // normal select 
-    if (select_stmt->isfunc_ == 0) {
+    if (select_stmt->isvaluefunc_ == 0) {
         print_tuple_header(ss, project_oper);
     } else {
+      printf("1111111111111111111111111111111111\n");
         res_print_tuple_header(ss, project_oper);
     }
     // print_tuple_header(ss, project_oper);
@@ -1510,7 +1512,6 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
             std::vector<std::pair<int, TupleCellSpec *>> modify;
             TupleCellSpec * oold = new TupleCellSpec;
             for (int a = 0; a < select_stmt->attr_num_; a++) {
-              // printf("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz %d\n", a);
               if (select_stmt->function_ops_[a] == NO_FUNCTION_OP) {
                 continue;
               }
@@ -1565,9 +1566,9 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
             }
             auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
             if (res_tuple == nullptr) return RC::MISS_TYPE;
-            std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
+            // std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
             tuple_to_string(ss, *tuple);
-            std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
+            // std::reverse(res_tuple->speces_.begin(), res_tuple->speces_.end());
 
             // auto res_tuple = dynamic_cast<ProjectTuple*>(tuple);
             // if (res_tuple == nullptr) return RC::MISS_TYPE;
@@ -1682,6 +1683,7 @@ RC ExecuteStage::do_create_table(SQLStageEvent *sql_event)
   }
   return rc;
 }
+
 RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
 {
   SessionEvent *session_event = sql_event->session_event();
