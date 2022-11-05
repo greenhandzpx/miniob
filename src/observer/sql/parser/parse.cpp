@@ -133,6 +133,110 @@ void condition_init(Condition *condition, FilterType condition_type, CompOp comp
     condition->right_value = *right_value;
   }
 }
+
+//*******************************************************func***************************************************************
+
+void condition_init_func(Condition *condition, FilterType condition_type, CompOp comp, 
+
+    int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, Selects *left_select, 
+    int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, 
+    Value *value_set, size_t value_set_num, 
+    FuncAttrCon* left_func_attr, FuncAttrCon* right_func_attr)
+
+{
+  condition->condition_type = condition_type;
+  condition->comp = comp;
+  if (left_func_attr != NULL && right_func_attr != NULL) {
+    
+    condition->left_is_attr = left_func_attr->value.type == UNDEFINED;
+    condition->left_is_sub_query = 0;
+    condition->right_is_attr = right_func_attr->value.type == UNDEFINED;
+    condition->right_is_sub_query = 0;
+    condition->right_is_set = 0;
+    condition->is_and = 1;
+
+    condition->left_args_value = left_func_attr->args_value;
+    condition->left_funcop = left_func_attr->funcop;
+
+    if (condition->left_is_attr) {
+      condition->left_attr = *left_func_attr->attr;
+    } else {
+      condition->left_value = left_func_attr->value;
+    }
+  
+
+    condition->right_args_value = right_func_attr->args_value;
+    condition->right_funcop = right_func_attr->funcop;
+
+    if (condition->right_is_attr) {
+      condition->right_attr = *right_func_attr->attr;
+    } else {
+      condition->right_value = right_func_attr->value;
+    }
+
+  } else if (left_func_attr != NULL && right_func_attr == NULL) {
+
+    condition->left_is_attr = left_func_attr->value.type == UNDEFINED;
+    condition->left_is_sub_query = 0;
+    condition->right_is_attr = right_is_attr;
+    condition->right_is_sub_query = right_is_sub_query;
+    condition->right_is_set = right_is_set;
+    condition->is_and = 1;
+    
+    condition->left_args_value = left_func_attr->args_value;
+    condition->left_funcop = left_func_attr->funcop;
+
+    if (condition->left_is_attr) {
+      condition->left_attr = *left_func_attr->attr;
+    } else {
+      condition->left_value = left_func_attr->value;
+    }
+
+    if (right_is_attr) {
+      condition->right_attr = *right_attr;
+    } else if (right_is_sub_query) {
+      condition->right_select = right_select;
+    } else if (right_is_set) {
+      condition->right_value_set_num = value_set_num;
+      for (int i = 0; i < value_set_num; ++i) {
+        condition->right_value_set[i] = value_set[i];
+      }
+    } else {
+      condition->right_value = *right_value;
+    }
+
+  } else if (left_func_attr == NULL && right_func_attr != NULL) {
+
+    condition->left_is_attr = left_is_attr;
+    condition->left_is_sub_query = left_is_sub_query;
+    condition->right_is_attr = right_func_attr->value.type == UNDEFINED;
+    condition->right_is_sub_query = 0;
+    condition->right_is_set = 0;
+    condition->is_and = 1;
+    
+    if (left_is_attr) {
+      condition->left_attr = *left_attr;
+    } else if (left_is_sub_query) {
+      condition->left_select = left_select;
+    } else {
+      condition->left_value = *left_value;
+    }
+
+    condition->right_args_value = right_func_attr->args_value;
+    condition->right_funcop = right_func_attr->funcop;
+    
+    if (condition->right_is_attr) {
+      condition->right_attr = *right_func_attr->attr;
+    } else {
+      condition->right_value = right_func_attr->value;
+    }
+
+  } else {
+    printf("panic!!!!!!!! in condition_init_func\n");
+  }
+}
+
+//*******************************************************func***************************************************************
 void condition_destroy(Condition *condition)
 {
   if (condition->condition_type != Exists &&

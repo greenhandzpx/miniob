@@ -24,7 +24,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_DATA 50
 
 //属性结构体
-typedef struct {
+typedef struct RelAttr{
   char *relation_name;   // relation name (may be NULL) 表名
   char *attribute_name;  // attribute name              属性名
   char *alias_name;      // 属性的别名
@@ -94,6 +94,15 @@ typedef struct _Value {
 
 struct Selects;
 
+//***********************************************************func****************************************************************
+typedef struct FuncAttrCon {
+  RelAttr* attr;
+  Value value;
+  FunctionOp funcop;
+  Value args_value;
+} FuncAttrCon;
+//***********************************************************func****************************************************************
+
 typedef struct _Condition {
   int left_is_sub_query;
   int left_is_attr;    // TRUE if left-hand side is an attribute
@@ -102,6 +111,11 @@ typedef struct _Condition {
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
   struct Selects *left_select; // right-hand side sub query(i.e. select query)
+
+  //*****************************************************func*************************************************************
+  FunctionOp left_funcop;
+  Value left_args_value;
+  //*****************************************************func*************************************************************
 
   // int is_comp;         // is comparison condition
   // int is_in;           // is in condition
@@ -118,6 +132,11 @@ typedef struct _Condition {
   Value right_value_set[MAX_NUM];
   size_t right_value_set_num;
   Value right_value;   // right-hand side value if right_is_attr = FALSE
+
+  //*****************************************************func*************************************************************
+  FunctionOp right_funcop;
+  Value right_args_value;
+  //*****************************************************func*************************************************************
 
   int is_and;  // TRUE if: conditino1 and condition2 (condition2 refers to this condition)
 } Condition;
@@ -172,6 +191,7 @@ typedef struct Selects {
   Value function_value2[MAX_NUM];
   int isfunc;
   int isvaluefunc;
+
   //*****************************************************func*************************************************************
 
 } Selects;
@@ -321,6 +341,12 @@ void value_destroy(Value *value);
 void condition_init(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, 
     Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
     size_t value_set_num);
+
+//***********************************************************func****************************************************************
+void condition_init_func(Condition *condition, FilterType condition_type, CompOp comp, int left_is_attr, int left_is_sub_query, RelAttr *left_attr, Value *left_value, 
+    Selects *left_select, int right_is_attr, int right_is_sub_query, int right_is_set, RelAttr *right_attr, Value *right_value, Selects *right_select, Value *value_set, 
+    size_t value_set_num, FuncAttrCon* left_func_attr, FuncAttrCon* right_func_attr);
+//***********************************************************func****************************************************************
 void condition_destroy(Condition *condition);
 
 void having_condition_init(Having_Condition *condition, AggregationOp aggr, CompOp cmpop, Value *value, RelAttr *attr);

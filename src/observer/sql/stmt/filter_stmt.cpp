@@ -51,8 +51,13 @@ RC FilterStmt::create(Db *db, Table *default_table, std::unordered_map<std::stri
       return rc;
     }
     tmp_stmt->filter_units_.push_back(filter_unit);
+//**************************************************func******************************************************
+    tmp_stmt->left_arg_.push_back(conditions[i].left_args_value);
+    tmp_stmt->left_op.push_back(conditions[i].left_funcop);
+    tmp_stmt->right_arg_.push_back(conditions[i].right_args_value);
+    tmp_stmt->right_op.push_back(conditions[i].right_funcop);
   }
-
+//**************************************************func******************************************************
   stmt = tmp_stmt;
   return rc;
 }

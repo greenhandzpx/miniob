@@ -22,6 +22,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/field.h"
 
+#include "util/util.h"
+
 RC PredicateOperator::open()
 {
   // if (children_.size() != 1) {
@@ -146,9 +148,113 @@ RC PredicateOperator::do_predicate(CompositeTuple &tuple, bool &res)
     between `OR`
   */
   bool has_not_met = false;  
+  int idx = 0;
   for (const FilterUnit *filter_unit : filter_stmt_->filter_units()) {
-    Expression *left_expr = filter_unit->left();
-    Expression *right_expr = filter_unit->right();
+
+
+    //********************************************************func********************************************************
+
+    Expression *left_expr_res = filter_unit->left();
+    Expression *right_expr_res = filter_unit->right();
+    Expression *left_expr;
+    Expression *right_expr;
+    Value left_arg = filter_stmt_->left_arg_[idx];
+    FunctionOp left_func = filter_stmt_->left_op[idx]; 
+    Value right_arg = filter_stmt_->right_arg_[idx]; 
+    FunctionOp right_func = filter_stmt_->right_op[idx]; 
+    idx++;
+
+    TupleCell left_cell;
+    TupleCell right_cell;
+    RC rc;
+    int left_index = -1, right_index = -1;
+
+    if (left_expr_res->type() == ExprType::FIELD) {
+      if (RC::SUCCESS != (rc = tuple.find_cell(dynamic_cast<FieldExpr*>(left_expr_res)->field(), left_cell, left_index))) {
+        return rc;
+      }
+    } else {
+      if (RC::SUCCESS != (rc = left_expr_res->get_value(tuple, left_cell))) {
+        res = false;
+        return rc;
+      }
+    }
+
+    if (right_expr_res->type() == ExprType::FIELD) {
+      if (RC::SUCCESS != (rc = tuple.find_cell(dynamic_cast<FieldExpr*>(right_expr_res)->field(), right_cell, right_index))) {
+        return rc;
+      }
+    } else {
+      if (RC::SUCCESS != (rc = right_expr_res->get_value(tuple, right_cell))) {
+        res = false;
+        return rc;
+      }
+    }
+
+    if (left_func == LENGTH_OP) {
+      left_expr = new ValueExpr;
+      int *data = (int*)malloc(sizeof(int));
+      if (left_cell.attr_type() != CHARS) {
+        printf("panic1\n");
+        return RC::MISS_TYPE;
+      }
+      *data = strlen((char*)left_cell.data());
+      dynamic_cast<ValueExpr*>(left_expr)->tuple_cell_ = TupleCell(INTS, (char*)data);
+    } else if (left_func == ROUND_OP) {
+      left_expr = new ValueExpr;
+      float *data = (float*)malloc(sizeof(float));
+      if (left_cell.attr_type() != FLOATS || left_arg.type != INTS) {
+        printf("panic2\n");
+        return RC::MISS_TYPE;
+      }
+      *data = round(*(float*)left_cell.data(), *(int*)left_arg.data);
+      dynamic_cast<ValueExpr*>(left_expr)->tuple_cell_ = TupleCell(FLOATS, (char*)data);
+    } else if (left_func == DATE_FORMAT_OP) {
+      left_expr = new ValueExpr;
+      char *data = (char*)malloc(15);
+      if (left_arg.type != CHARS) {
+        printf("panic3\n");
+        return RC::MISS_TYPE;
+      }
+      data = date_format(*(int*)left_cell.data(), (char*)left_arg.data);
+      dynamic_cast<ValueExpr*>(left_expr)->tuple_cell_ = TupleCell(INTS, (char*)data);
+    } else {
+      left_expr = left_expr_res;
+    }
+
+    if (right_func == LENGTH_OP) {
+      right_expr = new ValueExpr;
+      int *data = (int*)malloc(sizeof(int));
+      if (right_cell.attr_type() != CHARS) {
+        printf("panic1\n");
+        return RC::MISS_TYPE;
+      }
+      *data = strlen((char*)right_cell.data());
+      dynamic_cast<ValueExpr*>(right_expr)->tuple_cell_ = TupleCell(INTS, (char*)data);
+    } else if (right_func == ROUND_OP) {
+      right_expr = new ValueExpr;
+      float *data = (float*)malloc(sizeof(float));
+      if (right_cell.attr_type() != FLOATS || right_arg.type != INTS) {
+        printf("panic2\n");
+        return RC::MISS_TYPE;
+      }
+      *data = round(*(float*)right_cell.data(), *(int*)right_arg.data);
+      dynamic_cast<ValueExpr*>(right_expr)->tuple_cell_ = TupleCell(FLOATS, (char*)data);
+    } else if (right_func == DATE_FORMAT_OP) {
+      right_expr = new ValueExpr;
+      char *data = (char*)malloc(15);
+      if (right_arg.type != CHARS) {
+        printf("panic3\n");
+        return RC::MISS_TYPE;
+      }
+      data = date_format(*(int*)right_cell.data(), (char*)right_arg.data);
+      dynamic_cast<ValueExpr*>(right_expr)->tuple_cell_ = TupleCell(INTS, (char*)data);
+    } else {
+      right_expr = right_expr_res;
+    }
+    
+    //********************************************************func********************************************************
+
 
     if (has_not_met) {
       // we should iterate until find a `OR` condition

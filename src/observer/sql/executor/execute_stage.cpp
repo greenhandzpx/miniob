@@ -1446,7 +1446,6 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     if (select_stmt->isvaluefunc_ == 0) {
         print_tuple_header(ss, project_oper);
     } else {
-      printf("1111111111111111111111111111111111\n");
         res_print_tuple_header(ss, project_oper);
     }
     // print_tuple_header(ss, project_oper);

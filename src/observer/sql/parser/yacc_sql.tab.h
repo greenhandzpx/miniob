@@ -140,9 +140,11 @@ union YYSTYPE
   char *string;
   int number;
   float floats;
-	char *position;
+  char *position;
+  struct FuncAttrCon *FuncAttrCon1;
+  struct RelAttr *relAttr;
 
-#line 146 "yacc_sql.tab.h"
+#line 148 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
